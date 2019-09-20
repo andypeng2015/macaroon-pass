@@ -2,33 +2,44 @@ package macaroon_pass
 
 import (
 	"gopkg.in/check.v1"
-	"testing"
 )
 
-func Test(t *testing.T) {
-	check.TestingT(t)
+type EmitterTestSuite struct {
+	key []byte
+	selector []byte
+	operations [][]byte
 }
 
-type TestSuite struct {
-	Env Environment
-}
+var _ = check.Suite(&EmitterTestSuite{})
 
-var _ = check.Suite(&TestSuite{})
-
-func (s *TestSuite) SetUpSuite(c *check.C) {
+func (suite *EmitterTestSuite) SetUpSuite(c *check.C) {
 	var err error
-	s.Env.Key, err = RandomKey(16)
+	suite.key, err = RandomKey(16)
 	c.Assert(err, check.IsNil)
 
+	suite.selector = []byte("123456789012")
+	suite.operations = [][]byte{[]byte("test1"), []byte("test2")}
 }
 
-func (suite *TestSuite) TestEmitMacaroonOperations (c *check.C) {
-	ops := []string {"123456789012", "payment"}
+func (suite *EmitterTestSuite) TestEmitMacaroon (c *check.C) {
+	emitter := NewEmitter(suite.key, suite.selector)
 
-	macaroon, err := suite.Env.EmitMacaroon(ops)
+	macaroon, err := emitter.EmitMacaroon()
 	c.Assert(err, check.IsNil)
 
-	strId := string(macaroon.Id())
-	c.Assert(strId, check.Equals, "123456789012|payment")
+	c.Assert(macaroon.Id(), check.DeepEquals, suite.selector)
+}
 
+func (suite *EmitterTestSuite)  TestEmitMacaroonOperations (c *check.C) {
+	emitter := NewEmitter(suite.key, suite.selector)
+	emitter.DeclareOperations(suite.operations)
+	
+	macaroon, err := emitter.EmitMacaroon()
+	c.Assert(err, check.IsNil)
+	
+	c.Assert(macaroon.Id(), check.DeepEquals, suite.selector)
+	for i, cav := range macaroon.Caveats() {
+		c.Assert(cav.Id, check.DeepEquals, suite.operations[i])
+	}
+	
 }

@@ -1,10 +1,8 @@
 package macaroon_pass
 
 import (
-	"crypto/rand"
 	"fmt"
 	"gopkg.in/macaroon.v2"
-	"strings"
 )
 
 //const KeyLen = 32
@@ -16,22 +14,27 @@ import (
 //	PublicKey SimpleKey
 //}
 
-
-type Environment struct {
-	Key []byte
-	//KeyPair KeyPair
-	operationList []string
+type Emitter struct {
+	Environment
+	selector []byte
+	operationList [][]byte
 }
 
-func RandomKey(size int) ([]byte, error) {
-	buf := make([]byte, size)
-	_, e := rand.Read(buf)
-	if e != nil {
-		return nil, fmt.Errorf("Cannot generate random key: %v", e);
+func NewEmitter (key []byte, selector []byte) *Emitter {
+	res := Emitter{
+		Environment: Environment{
+			Key:           key,
+		},
+		selector:    selector,
 	}
-	return buf, nil
+	return &res
 }
 
+func (emt *Emitter) DeclareOperations (operations [][]byte) {
+	emt.operationList = operations
+}
+
+/*
 func (env* Environment) makeId (ops []string) ([]byte, error) {
 	strId := strings.Join(ops, "|")
 	id := []byte(strId)
@@ -48,18 +51,22 @@ func (env* Environment) makeId (ops []string) ([]byte, error) {
 
 	return id, nil
 }
-
-func (env* Environment) EmitMacaroon (ops []string) (*macaroon.Macaroon, error) {
-	id, err := env.makeId(ops)
-	if err != nil {
-		return nil, fmt.Errorf("Cannot create macaroon id: %v", err)
-	}
-	m, err := macaroon.New(env.Key, id, "", macaroon.V2)
+*/
+func (emt* Emitter) EmitMacaroon () (*macaroon.Macaroon, error) {
+	m, err := macaroon.New(emt.Key, emt.selector, "", macaroon.V2)
 	if err != nil {
 		return nil, fmt.Errorf("Cannot create macaroon: %v", err)
 	}
+	for _, v := range emt.operationList {
+		err = m.AddFirstPartyCaveat(v)
+		if err != nil {
+			return nil, fmt.Errorf("Cannot add first-party caveat: %v", err)
+		}
+	}
 	return m, nil
 }
+
+
 
 
 
