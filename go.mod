@@ -1,4 +1,4 @@
-module gopkg.in/macaroon.v2
+module github.com/ArrowPass/macaroon
 
 require (
 	github.com/frankban/quicktest v1.0.0

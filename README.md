@@ -1,13 +1,13 @@
 # macaroon
 --
-    import "gopkg.in/macaroon.v2"
+    import "github.com/ArowPass/macaroon"
+
+This package is forked from "gopkg.in/macaroon.v2" in order to make the library
+significantly more scalable and flexible. 
 
 The macaroon package implements macaroons as described in the paper "Macaroons:
 Cookies with Contextual Caveats for Decentralized Authorization in the Cloud"
 (http://theory.stanford.edu/~ataly/Papers/macaroons.pdf)
-
-See the macaroon bakery packages at http://godoc.org/gopkg.in/macaroon-bakery.v2
-for higher level services and operations that use macaroons.
 
 ## Usage
 
