@@ -2,7 +2,7 @@ package macaroon_pass
 
 import (
 	"gopkg.in/check.v1"
-	"gopkg.in/macaroon.v2"
+	"github.com/ArrowPass/macaroon"
 	"testing"
 )
 

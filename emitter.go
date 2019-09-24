@@ -2,7 +2,7 @@ package macaroon_pass
 
 import (
 	"fmt"
-	"gopkg.in/macaroon.v2"
+	"github.com/ArrowPass/macaroon"
 )
 
 //const KeyLen = 32

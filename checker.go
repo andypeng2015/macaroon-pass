@@ -3,7 +3,7 @@ package macaroon_pass
 import (
 	"bytes"
 	"fmt"
-	"gopkg.in/macaroon.v2"
+	"github.com/ArrowPass/macaroon"
 )
 
 //type OperationsAuthorizer interface {
