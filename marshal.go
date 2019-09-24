@@ -36,10 +36,22 @@ func (m *Macaroon) Version() Version {
 	return m.version
 }
 
+// Marshaller defines a wrapper over macaroon to marshal or unmarshal
+type Marshaller struct {
+	Macaroon
+}
+
+func (m *Marshaller) Equal (m1 *Marshaller) bool {
+	if m == m1 || m == nil || m1 == nil {
+		return m == m1
+	}
+	return m.Macaroon.Equal(&m1.Macaroon)
+}
+
 // MarshalJSON implements json.Marshaler by marshaling the
 // macaroon in JSON format. The serialisation format is determined
 // by the macaroon's version.
-func (m *Macaroon) MarshalJSON() ([]byte, error) {
+func (m *Marshaller) MarshalJSON() ([]byte, error) {
 	switch m.version {
 	case V1:
 		return m.marshalJSONV1()
@@ -57,7 +69,7 @@ func (m *Macaroon) MarshalJSON() ([]byte, error) {
 //
 // After unmarshaling, the macaroon's version will reflect
 // the version that it was unmarshaled as.
-func (m *Macaroon) UnmarshalJSON(data []byte) error {
+func (m *Marshaller) UnmarshalJSON(data []byte) error {
 	if data[0] == '"' {
 		// It's a string, so it must be a base64-encoded binary form.
 		var s string
@@ -106,7 +118,7 @@ func (m *Macaroon) UnmarshalJSON(data []byte) error {
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 // It accepts both V1 and V2 binary encodings.
-func (m *Macaroon) UnmarshalBinary(data []byte) error {
+func (m *Marshaller) UnmarshalBinary(data []byte) error {
 	// Copy the data to avoid retaining references to it
 	// in the internal data structures.
 	data = append([]byte(nil), data...)
@@ -118,7 +130,7 @@ func (m *Macaroon) UnmarshalBinary(data []byte) error {
 // from the given data and returns where the parsed data ends.
 //
 // It retains references to data.
-func (m *Macaroon) parseBinary(data []byte) ([]byte, error) {
+func (m *Marshaller) parseBinary(data []byte) ([]byte, error) {
 	if len(data) == 0 {
 		return nil, fmt.Errorf("empty macaroon data")
 	}
@@ -147,14 +159,14 @@ func (m *Macaroon) parseBinary(data []byte) ([]byte, error) {
 // MarshalBinary implements encoding.BinaryMarshaler by
 // formatting the macaroon according to the version specified
 // by MarshalAs.
-func (m *Macaroon) MarshalBinary() ([]byte, error) {
+func (m *Marshaller) MarshalBinary() ([]byte, error) {
 	return m.appendBinary(nil)
 }
 
 // appendBinary appends the binary-formatted macaroon to
 // the given data, formatting it according to the macaroon's
 // version.
-func (m *Macaroon) appendBinary(data []byte) ([]byte, error) {
+func (m *Marshaller) appendBinary(data []byte) ([]byte, error) {
 	switch m.version {
 	case V1:
 		return m.appendBinaryV1(data)
@@ -165,13 +177,13 @@ func (m *Macaroon) appendBinary(data []byte) ([]byte, error) {
 	}
 }
 
-// Slice defines a collection of macaroons. By convention, the
-// first macaroon in the slice is a primary macaroon and the rest
-// are discharges for its third party caveats.
-type Slice []*Macaroon
+// SliceMarshaller defines a collection of macaroons to marshal or unmarshal
+// By convention, the first macaroon in the slice is a primary macaroon
+// and the rest are discharges for its third party caveats.
+type SliceMarshaller []*Marshaller
 
 // MarshalBinary implements encoding.BinaryMarshaler.
-func (s Slice) MarshalBinary() ([]byte, error) {
+func (s SliceMarshaller) MarshalBinary() ([]byte, error) {
 	var data []byte
 	var err error
 	for _, m := range s {
@@ -186,13 +198,13 @@ func (s Slice) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 // It accepts all known binary encodings for the data - all the
 // embedded macaroons need not be encoded in the same format.
-func (s *Slice) UnmarshalBinary(data []byte) error {
+func (s *SliceMarshaller) UnmarshalBinary(data []byte) error {
 	// Prevent the internal data structures from holding onto the
 	// slice by copying it first.
 	data = append([]byte(nil), data...)
 	*s = (*s)[:0]
 	for len(data) > 0 {
-		var m Macaroon
+		var m Marshaller
 		rest, err := m.parseBinary(data)
 		if err != nil {
 			return fmt.Errorf("cannot unmarshal macaroon: %v", err)

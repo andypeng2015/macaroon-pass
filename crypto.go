@@ -10,7 +10,7 @@ import (
 	"golang.org/x/crypto/nacl/secretbox"
 )
 
-func keyedHash(key *[hashLen]byte, text []byte) *[hashLen]byte {
+func KeyedHash(key *[hashLen]byte, text []byte) *[hashLen]byte {
 	h := keyedHasher(key)
 	h.Write([]byte(text))
 	var sum [hashLen]byte

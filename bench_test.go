@@ -1,21 +1,18 @@
-package macaroon_test
+package macaroon
 
 import (
-	"crypto/rand"
 	"encoding/base64"
 	"testing"
-
-	"gopkg.in/macaroon.v2"
 )
 
-func randomBytes(n int) []byte {
-	b := make([]byte, n)
-	_, err := rand.Read(b)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
+//func randomBytes(n int) []byte {
+//	b := make([]byte, n)
+//	_, err := rand.Read(b)
+//	if err != nil {
+//		panic(err)
+//	}
+//	return b
+//}
 
 func BenchmarkNew(b *testing.B) {
 	rootKey := randomBytes(24)
@@ -23,7 +20,7 @@ func BenchmarkNew(b *testing.B) {
 	loc := base64.StdEncoding.EncodeToString(randomBytes(40))
 	b.ResetTimer()
 	for i := b.N - 1; i >= 0; i-- {
-		MustNew(rootKey, id, loc, macaroon.LatestVersion)
+		MustNew(rootKey, id, loc, LatestVersion)
 	}
 }
 
@@ -34,7 +31,7 @@ func BenchmarkAddCaveat(b *testing.B) {
 	b.ResetTimer()
 	for i := b.N - 1; i >= 0; i-- {
 		b.StopTimer()
-		m := MustNew(rootKey, id, loc, macaroon.LatestVersion)
+		m := MustNew(rootKey, id, loc, LatestVersion)
 		b.StartTimer()
 		m.AddFirstPartyCaveat([]byte("some caveat stuff"))
 	}
@@ -72,7 +69,7 @@ func BenchmarkMarshalJSON(b *testing.B) {
 	rootKey := randomBytes(24)
 	id := []byte(base64.StdEncoding.EncodeToString(randomBytes(100)))
 	loc := base64.StdEncoding.EncodeToString(randomBytes(40))
-	m := MustNew(rootKey, id, loc, macaroon.LatestVersion)
+	m := MustNew(rootKey, id, loc, LatestVersion)
 	b.ResetTimer()
 	for i := b.N - 1; i >= 0; i-- {
 		_, err := m.MarshalJSON()
@@ -82,25 +79,26 @@ func BenchmarkMarshalJSON(b *testing.B) {
 	}
 }
 
-func MustNew(rootKey, id []byte, loc string, vers macaroon.Version) *macaroon.Macaroon {
-	m, err := macaroon.New(rootKey, id, loc, vers)
+func MustNew(rootKey, id []byte, loc string, vers Version) *Marshaller {
+	m, err := New(rootKey, id, loc, vers)
 	if err != nil {
 		panic(err)
 	}
-	return m
+	res := Marshaller{Macaroon: *m}
+	return &res
 }
 
 func BenchmarkUnmarshalJSON(b *testing.B) {
 	rootKey := randomBytes(24)
 	id := []byte(base64.StdEncoding.EncodeToString(randomBytes(100)))
 	loc := base64.StdEncoding.EncodeToString(randomBytes(40))
-	m := MustNew(rootKey, id, loc, macaroon.LatestVersion)
+	m := MustNew(rootKey, id, loc, LatestVersion)
 	data, err := m.MarshalJSON()
 	if err != nil {
 		b.Fatalf("cannot marshal JSON: %v", err)
 	}
 	for i := b.N - 1; i >= 0; i-- {
-		var m macaroon.Macaroon
+		var m Marshaller
 		err := m.UnmarshalJSON(data)
 		if err != nil {
 			b.Fatalf("cannot unmarshal JSON: %v", err)

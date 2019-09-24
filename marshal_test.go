@@ -1,25 +1,23 @@
-package macaroon_test
+package macaroon
 
 import (
 	"encoding/json"
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-
-	"gopkg.in/macaroon.v2"
 )
 
 func TestMarshalUnmarshalMacaroonV1(t *testing.T) {
 	c := qt.New(t)
-	testMarshalUnmarshalWithVersion(c, macaroon.V1)
+	testMarshalUnmarshalWithVersion(c, V1)
 }
 
 func TestMarshalUnmarshalMacaroonV2(t *testing.T) {
 	c := qt.New(t)
-	testMarshalUnmarshalWithVersion(c, macaroon.V2)
+	testMarshalUnmarshalWithVersion(c, V2)
 }
 
-func testMarshalUnmarshalWithVersion(c *qt.C, vers macaroon.Version) {
+func testMarshalUnmarshalWithVersion(c *qt.C, vers Version) {
 	rootKey := []byte("secret")
 	m := MustNew(rootKey, []byte("some id"), "a location", vers)
 
@@ -35,7 +33,7 @@ func testMarshalUnmarshalWithVersion(c *qt.C, vers macaroon.Version) {
 	b, err := m.MarshalBinary()
 	c.Assert(err, qt.Equals, nil)
 
-	var um macaroon.Macaroon
+	var um Marshaller
 	err = um.UnmarshalBinary(b)
 	c.Assert(err, qt.Equals, nil)
 
@@ -44,8 +42,6 @@ func testMarshalUnmarshalWithVersion(c *qt.C, vers macaroon.Version) {
 	c.Assert(um.Signature(), qt.DeepEquals, m.Signature())
 	c.Assert(um.Caveats(), qt.DeepEquals, m.Caveats())
 	c.Assert(um.Version(), qt.Equals, vers)
-	um.SetVersion(m.Version())
-	c.Assert(m, qt.DeepEquals, &um)
 }
 
 func TestMarshalBinaryRoundTrip(t *testing.T) {
@@ -65,11 +61,11 @@ func TestMarshalBinaryRoundTrip(t *testing.T) {
 			"\x00" +
 			"\x06\x20\xd2\x7d\xb2\xfd\x1f\x22\x76\x0e\x4c\x3d\xae\x81\x37\xe2\xd8\xfc\x1d\xf6\xc0\x74\x1c\x18\xae\xd4\xb9\x72\x56\xbf\x78\xd1\xf5\x5c",
 	)
-	var m macaroon.Macaroon
+	var m Marshaller
 	err := m.UnmarshalBinary(data)
 	c.Assert(err, qt.Equals, nil)
-	assertLibMacaroonsMacaroon(c, &m)
-	c.Assert(m.Version(), qt.Equals, macaroon.V2)
+	assertLibMacaroonsMacaroon(c, &m.Macaroon)
+	c.Assert(m.Version(), qt.Equals, V2)
 
 	data1, err := m.MarshalBinary()
 	c.Assert(err, qt.Equals, nil)
@@ -78,15 +74,15 @@ func TestMarshalBinaryRoundTrip(t *testing.T) {
 
 func TestBinaryJSONRoundTripV1(t *testing.T) {
 	c := qt.New(t)
-	testBinaryJSONRoundTrip(c, macaroon.V1)
+	testBinaryJSONRoundTrip(c, V1)
 }
 
 func TestBinaryJSONRoundTripV2(t *testing.T) {
 	c := qt.New(t)
-	testBinaryJSONRoundTrip(c, macaroon.V2)
+	testBinaryJSONRoundTrip(c, V2)
 }
 
-func testBinaryJSONRoundTrip(c *qt.C, vers macaroon.Version) {
+func testBinaryJSONRoundTrip(c *qt.C, vers Version) {
 	m1 := MustNew([]byte("rootkey"), []byte("some id"), "a location", vers)
 	err := m1.AddFirstPartyCaveat([]byte("a caveat"))
 	c.Assert(err, qt.Equals, nil)
@@ -99,7 +95,7 @@ func testBinaryJSONRoundTrip(c *qt.C, vers macaroon.Version) {
 	jsonData1, err := json.Marshal(m1)
 	c.Assert(err, qt.Equals, nil)
 
-	var m2 *macaroon.Macaroon
+	var m2 *Marshaller
 	err = json.Unmarshal(jsonData1, &m2)
 	c.Assert(err, qt.Equals, nil)
 
@@ -111,15 +107,15 @@ func testBinaryJSONRoundTrip(c *qt.C, vers macaroon.Version) {
 
 func TestMarshalUnmarshalSliceV1(t *testing.T) {
 	c := qt.New(t)
-	testMarshalUnmarshalSliceWithVersion(c, macaroon.V1)
+	testMarshalUnmarshalSliceWithVersion(c, V1)
 }
 
 func TestMarshalUnmarshalSliceV2(t *testing.T) {
 	c := qt.New(t)
-	testMarshalUnmarshalSliceWithVersion(c, macaroon.V2)
+	testMarshalUnmarshalSliceWithVersion(c, V2)
 }
 
-func testMarshalUnmarshalSliceWithVersion(c *qt.C, vers macaroon.Version) {
+func testMarshalUnmarshalSliceWithVersion(c *qt.C, vers Version) {
 	rootKey := []byte("secret")
 	m1 := MustNew(rootKey, []byte("some id"), "a location", vers)
 	m2 := MustNew(rootKey, []byte("some other id"), "another location", vers)
@@ -129,12 +125,12 @@ func testMarshalUnmarshalSliceWithVersion(c *qt.C, vers macaroon.Version) {
 	err = m2.AddFirstPartyCaveat([]byte("another caveat"))
 	c.Assert(err, qt.Equals, nil)
 
-	macaroons := macaroon.Slice{m1, m2}
+	macaroons := SliceMarshaller{m1, m2}
 
 	b, err := macaroons.MarshalBinary()
 	c.Assert(err, qt.Equals, nil)
 
-	var unmarshaledMacs macaroon.Slice
+	var unmarshaledMacs SliceMarshaller
 	err = unmarshaledMacs.UnmarshalBinary(b)
 	c.Assert(err, qt.Equals, nil)
 
@@ -148,7 +144,6 @@ func testMarshalUnmarshalSliceWithVersion(c *qt.C, vers macaroon.Version) {
 		c.Assert(um.Version(), qt.Equals, vers)
 		um.SetVersion(m.Version())
 	}
-	c.Assert(macaroons, qt.DeepEquals, unmarshaledMacs)
 
 	// Check that appending a caveat to the first does not
 	// affect the second.
@@ -163,15 +158,15 @@ func testMarshalUnmarshalSliceWithVersion(c *qt.C, vers macaroon.Version) {
 
 func TestSliceRoundTripV1(t *testing.T) {
 	c := qt.New(t)
-	testSliceRoundTripWithVersion(c, macaroon.V1)
+	testSliceRoundTripWithVersion(c, V1)
 }
 
 func TestSliceRoundTripV2(t *testing.T) {
 	c := qt.New(t)
-	testSliceRoundTripWithVersion(c, macaroon.V2)
+	testSliceRoundTripWithVersion(c, V2)
 }
 
-func testSliceRoundTripWithVersion(c *qt.C, vers macaroon.Version) {
+func testSliceRoundTripWithVersion(c *qt.C, vers Version) {
 	rootKey := []byte("secret")
 	m1 := MustNew(rootKey, []byte("some id"), "a location", vers)
 	m2 := MustNew(rootKey, []byte("some other id"), "another location", vers)
@@ -181,12 +176,12 @@ func testSliceRoundTripWithVersion(c *qt.C, vers macaroon.Version) {
 	err = m2.AddFirstPartyCaveat([]byte("another caveat"))
 	c.Assert(err, qt.Equals, nil)
 
-	macaroons := macaroon.Slice{m1, m2}
+	macaroons := SliceMarshaller{m1, m2}
 
 	b, err := macaroons.MarshalBinary()
 	c.Assert(err, qt.Equals, nil)
 
-	var unmarshaledMacs macaroon.Slice
+	var unmarshaledMacs SliceMarshaller
 	err = unmarshaledMacs.UnmarshalBinary(b)
 	c.Assert(err, qt.Equals, nil)
 
@@ -231,7 +226,7 @@ func TestBase64Decode(t *testing.T) {
 	c := qt.New(t)
 	for i, test := range base64DecodeTests {
 		c.Logf("test %d: %s", i, test.about)
-		out, err := macaroon.Base64Decode([]byte(test.input))
+		out, err := Base64Decode([]byte(test.input))
 		if test.expectError != "" {
 			c.Assert(err, qt.ErrorMatches, test.expectError)
 		} else {

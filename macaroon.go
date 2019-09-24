@@ -77,7 +77,7 @@ func (c Caveat) Equal(c1 Caveat) bool {
 
 // isThirdParty reports whether the caveat must be satisfied
 // by some third party (if not, it's a first person caveat).
-func (cav *Caveat) isThirdParty() bool {
+func (cav *Caveat) IsThirdParty() bool {
 	return len(cav.VerificationId) > 0
 }
 
@@ -97,7 +97,7 @@ func New(rootKey, id []byte, loc string, version Version) (*Macaroon, error) {
 	m.version = version
 	m.init(append([]byte(nil), id...), loc, version)
 	derivedKey := makeKey(rootKey)
-	m.sig = *keyedHash(derivedKey, m.id)
+	m.sig = *KeyedHash(derivedKey, m.id)
 	return &m, nil
 }
 
@@ -176,7 +176,7 @@ func (m *Macaroon) addCaveat(caveatId, verificationId []byte, loc string) error 
 	}
 	m.appendCaveat(caveatId, verificationId, loc)
 	if len(verificationId) == 0 {
-		m.sig = *keyedHash(&m.sig, caveatId)
+		m.sig = *KeyedHash(&m.sig, caveatId)
 	} else {
 		m.sig = *keyedHash2(&m.sig, verificationId, caveatId)
 	}
@@ -185,9 +185,9 @@ func (m *Macaroon) addCaveat(caveatId, verificationId []byte, loc string) error 
 
 func keyedHash2(key *[keyLen]byte, d1, d2 []byte) *[hashLen]byte {
 	var data [hashLen * 2]byte
-	copy(data[0:], keyedHash(key, d1)[:])
-	copy(data[hashLen:], keyedHash(key, d2)[:])
-	return keyedHash(key, data[:])
+	copy(data[0:], KeyedHash(key, d1)[:])
+	copy(data[hashLen:], KeyedHash(key, d2)[:])
+	return KeyedHash(key, data[:])
 }
 
 // Bind prepares the macaroon for being used to discharge the
@@ -327,9 +327,9 @@ func (vctx *verificationContext) verify(root *Macaroon, rootKey []byte) error {
 
 func (vctx *verificationContext) verify0(m *Macaroon, index int, rootKey *[hashLen]byte) error {
 	vctx.trace(index, TraceHash, m.id, nil)
-	caveatSig := keyedHash(rootKey, m.id)
+	caveatSig := KeyedHash(rootKey, m.id)
 	for i, cav := range m.caveats {
-		if cav.isThirdParty() {
+		if cav.IsThirdParty() {
 			cavKey, err := decrypt(caveatSig, cav.VerificationId)
 			if err != nil {
 				return fmt.Errorf("failed to decrypt caveat %d signature: %v", i, err)
@@ -347,7 +347,7 @@ func (vctx *verificationContext) verify0(m *Macaroon, index int, rootKey *[hashL
 			caveatSig = keyedHash2(caveatSig, cav.VerificationId, cav.Id)
 		} else {
 			vctx.trace(index, TraceHash, cav.Id, nil)
-			caveatSig = keyedHash(caveatSig, cav.Id)
+			caveatSig = KeyedHash(caveatSig, cav.Id)
 			if err := vctx.check(string(cav.Id)); err != nil {
 				return err
 			}

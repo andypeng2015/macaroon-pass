@@ -1,9 +1,5 @@
 package macaroon
 
-var (
-	AddThirdPartyCaveatWithRand = (*Macaroon).addThirdPartyCaveatWithRand
-)
-
 type MacaroonJSONV2 macaroonJSONV2
 
 // SetVersion sets the version field of m to v;

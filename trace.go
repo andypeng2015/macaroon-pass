@@ -43,7 +43,7 @@ func (op TraceOp) Result(input []byte) []byte {
 		return makeKey(input)[:]
 	case TraceHash:
 		if len(op.Data2) == 0 {
-			return keyedHash(bytesToKey(input), op.Data1)[:]
+			return KeyedHash(bytesToKey(input), op.Data1)[:]
 		}
 		return keyedHash2(bytesToKey(input), op.Data1, op.Data2)[:]
 	case TraceBind:

@@ -24,7 +24,7 @@ type caveatJSONV1 struct {
 }
 
 // marshalJSONV1 marshals the macaroon to the V1 JSON format.
-func (m *Macaroon) marshalJSONV1() ([]byte, error) {
+func (m *Marshaller) marshalJSONV1() ([]byte, error) {
 	if !utf8.Valid(m.id) {
 		return nil, fmt.Errorf("macaroon id is not valid UTF-8")
 	}
@@ -53,7 +53,7 @@ func (m *Macaroon) marshalJSONV1() ([]byte, error) {
 
 // initJSONV1 initializes m from the JSON-unmarshaled data
 // held in mjson.
-func (m *Macaroon) initJSONV1(mjson *macaroonJSONV1) error {
+func (m *Marshaller) initJSONV1(mjson *macaroonJSONV1) error {
 	m.init([]byte(mjson.Identifier), mjson.Location, V1)
 	sig, err := hex.DecodeString(mjson.Signature)
 	if err != nil {
@@ -89,7 +89,7 @@ func (m *Macaroon) initJSONV1(mjson *macaroonJSONV1) error {
 // parseBinaryV1 parses the given data in V1 format into the macaroon. The macaroon's
 // internal data structures will retain references to the data. It
 // returns the data after the end of the macaroon.
-func (m *Macaroon) parseBinaryV1(data []byte) ([]byte, error) {
+func (m *Marshaller) parseBinaryV1(data []byte) ([]byte, error) {
 	var err error
 
 	loc, err := expectPacketV1(data, fieldNameLocation)
@@ -155,7 +155,7 @@ func expectPacketV1(data []byte, kind string) (packetV1, error) {
 }
 
 // appendBinaryV1 appends the binary encoding of m to data.
-func (m *Macaroon) appendBinaryV1(data []byte) ([]byte, error) {
+func (m *Marshaller) appendBinaryV1(data []byte) ([]byte, error) {
 	var ok bool
 	data, ok = appendPacketV1(data, fieldNameLocation, []byte(m.location))
 	if !ok {
