@@ -1,5 +1,5 @@
 package macaroon
-
+/*
 import (
 	"fmt"
 )
@@ -40,7 +40,7 @@ type TraceOp struct {
 func (op TraceOp) Result(input []byte) []byte {
 	switch op.Kind {
 	case TraceMakeKey:
-		return makeKey(input)[:]
+		return MakeKey(input)[:]
 	case TraceHash:
 		if len(op.Data2) == 0 {
 			return KeyedHash(bytesToKey(input), op.Data1)[:]
@@ -100,3 +100,4 @@ var traceOps = []string{
 func (k TraceOpKind) String() string {
 	return traceOps[k]
 }
+*/

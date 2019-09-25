@@ -52,6 +52,9 @@ func (m *Marshaller) Equal (m1 *Marshaller) bool {
 // macaroon in JSON format. The serialisation format is determined
 // by the macaroon's version.
 func (m *Marshaller) MarshalJSON() ([]byte, error) {
+	if len(m.Signature()) == 0 {
+		return nil, fmt.Errorf("cannot marshal unsigned macaroon")
+	}
 	switch m.version {
 	case V1:
 		return m.marshalJSONV1()
@@ -167,6 +170,9 @@ func (m *Marshaller) MarshalBinary() ([]byte, error) {
 // the given data, formatting it according to the macaroon's
 // version.
 func (m *Marshaller) appendBinary(data []byte) ([]byte, error) {
+	if len(m.Signature()) == 0 {
+		return nil, fmt.Errorf("cannot marshal unsigned macaroon")
+	}
 	switch m.version {
 	case V1:
 		return m.appendBinaryV1(data)

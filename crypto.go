@@ -6,33 +6,58 @@ import (
 	"fmt"
 	"hash"
 	"io"
-
+	
 	"golang.org/x/crypto/nacl/secretbox"
 )
 
-func KeyedHash(key *[hashLen]byte, text []byte) *[hashLen]byte {
+func HmacSha256Signer(key []byte, m *Macaroon) ([]byte, error) {
+	derivedKey := MakeKey(key)
+	sig := KeyedHash(derivedKey, m.Id())
+	
+	for _, cav := range m.Caveats() {
+		if len(cav.VerificationId) == 0 {
+			sig = KeyedHash(sig, cav.Id)
+		} else {
+			sig = keyedHash2(sig, cav.VerificationId, cav.Id)
+		}
+	}
+	return sig[:], nil
+}
+
+func HmacSha256SignatureVerifier(key []byte, m *Macaroon) error {
+	return fmt.Errorf("Not implemented")
+}
+
+func KeyedHash(key []byte, text []byte) []byte {
 	h := keyedHasher(key)
 	h.Write([]byte(text))
 	var sum [hashLen]byte
 	hashSum(h, &sum)
-	return &sum
+	return sum[:]
 }
 
-func keyedHasher(key *[hashLen]byte) hash.Hash {
+func keyedHash2(key []byte, d1, d2 []byte) []byte {
+	var data [hashLen * 2]byte
+	copy(data[0:], KeyedHash(key, d1)[:])
+	copy(data[hashLen:], KeyedHash(key, d2)[:])
+	return KeyedHash(key, data[:])
+}
+
+func keyedHasher(key []byte) hash.Hash {
 	return hmac.New(sha256.New, key[:])
 }
 
 var keyGen = []byte("macaroons-key-generator")
 
-// makeKey derives a fixed length key from a variable
+// MakeKey derives a fixed length key from a variable
 // length key. The keyGen constant is the same
 // as that used in libmacaroons.
-func makeKey(variableKey []byte) *[keyLen]byte {
+func MakeKey(variableKey []byte) []byte {
 	h := hmac.New(sha256.New, keyGen)
 	h.Write(variableKey)
 	var key [keyLen]byte
 	hashSum(h, &key)
-	return &key
+	return key[:]
 }
 
 // hashSum calls h.Sum to put the sum into
