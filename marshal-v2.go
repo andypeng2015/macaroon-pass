@@ -63,7 +63,7 @@ func (m *Marshaller) initJSONV2(mjson *macaroonJSONV2) error {
 	if len(sig) != hashLen {
 		return fmt.Errorf("signature has unexpected length %d", len(sig))
 	}
-	copy(m.sig[:], sig)
+	m.sig = sig
 	m.caveats = make([]Caveat, 0, len(mjson.Caveats))
 	for _, cav := range mjson.Caveats {
 		cid, err := jsonBinaryField(cav.CID, cav.CID64)
@@ -205,7 +205,7 @@ func (m *Marshaller) parseBinaryV2(data []byte) ([]byte, error) {
 	if len(sig.data) != hashLen {
 		return nil, fmt.Errorf("signature has unexpected length")
 	}
-	copy(m.sig[:], sig.data)
+	m.sig = sig.data
 	return data, nil
 }
 

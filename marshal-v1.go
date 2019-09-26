@@ -62,7 +62,7 @@ func (m *Marshaller) initJSONV1(mjson *macaroonJSONV1) error {
 	if len(sig) != hashLen {
 		return fmt.Errorf("signature has unexpected length %d", len(sig))
 	}
-	copy(m.sig[:], sig)
+	m.sig = sig
 	m.caveats = m.caveats[:0]
 	for _, cav := range mjson.Caveats {
 		vid, err := Base64Decode([]byte(cav.VID))
@@ -119,7 +119,7 @@ func (m *Marshaller) parseBinaryV1(data []byte) ([]byte, error) {
 			if len(p.data) != hashLen {
 				return nil, fmt.Errorf("signature has unexpected length %d", len(p.data))
 			}
-			copy(m.sig[:], p.data)
+			m.sig = p.data[:]
 			return data, nil
 		case fieldNameCaveatId:
 			if cav.Id != nil {

@@ -184,9 +184,9 @@ func (m *Macaroon) AddCaveat(caveatId, verificationId []byte, loc string) error 
 // Bind prepares the macaroon for being used to discharge the
 // macaroon with the given signature sig. This must be
 // used before it is used in the discharges argument to Verify.
-func (m *Macaroon) Bind(sig []byte) {
-	m.sig = bindForRequest(sig, m.sig)
-}
+//func (m *Macaroon) Bind(sig []byte) {
+//	m.sig = bindForRequest(sig, m.sig)
+//}
 
 // AddFirstPartyCaveat adds a caveat that will be verified
 // by the target service.
@@ -217,16 +217,16 @@ func (m *Macaroon) AddFirstPartyCaveat(condition []byte) error {
 //	return nil
 //}
 
-var zeroKey [hashLen]byte
-
-// bindForRequest binds the given macaroon
-// to the given signature of its parent macaroon.
-func bindForRequest(rootSig []byte, dischargeSig []byte) []byte {
-	if bytes.Equal(rootSig, dischargeSig) {
-		return dischargeSig
-	}
-	return keyedHash2(zeroKey[:], rootSig, dischargeSig[:])
-}
+//var zeroKey [hashLen]byte
+//
+//// bindForRequest binds the given macaroon
+//// to the given signature of its parent macaroon.
+//func bindForRequest(rootSig []byte, dischargeSig []byte) []byte {
+//	if bytes.Equal(rootSig, dischargeSig) {
+//		return dischargeSig
+//	}
+//	return keyedHash2(zeroKey[:], rootSig, dischargeSig[:])
+//}
 
 // Verify verifies that the receiving macaroon is valid.
 // The root key must be the same that the macaroon was originally
@@ -288,7 +288,7 @@ func (m *Macaroon) Sign(key []byte, signer func (key []byte, macaroon *Macaroon)
 		return fmt.Errorf("macaroon signing failed: %v", err)
 	}
 	
-	m.sig = sig[:31]
+	m.sig = sig
 	return nil
 }
 
