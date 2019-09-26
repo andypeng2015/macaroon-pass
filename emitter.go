@@ -5,63 +5,90 @@ import (
 	"github.com/ArrowPass/macaroon"
 )
 
-//const KeyLen = 32
+// Emitter is the abstraction over macaroon which allows to create new macaroons with different encryption schemes
+// Common usage sample:
+// macId := getCardId()
+// macKey := GetMacKey(macId)
+// invAddr := GetInvoiceAddr()
+// op := []byte("invoice=" + invAddr)
+// emt := NewEmitter(macKey, HmacSha256Signer, macId)
+// emt.AuthorizeOperations([][]byte{op})
 //
-//type SimpleKey [KeyLen]byte
+// delegatedOp := []byte(getMerchantId())
+// nonce := getCardNonce()
+// emt.DelegateAuthorization(delegatedOp, "das", nonce)
+// macaroon, err := emt.Emit()
 //
-//type KeyPair struct {
-//	PrivateKey SimpleKey
-//	PublicKey SimpleKey
-//}
+// discharge := RequestDischargeMacaroon()
+//
+// marshaller := macaroon.SliceMarshaller{macaroon, discharge}
+// bin, err := marshaller.MarshalBinary()
 
-type Emitter struct {
-	Environment
-	selector []byte
-	operationList [][]byte
+
+type thirdPartyOp struct {
+	operation []byte
+	location string
+	verificationId []byte
 }
 
-func NewEmitter (key []byte, selector []byte) *Emitter {
+type Emitter struct {
+	
+	Environment
+	selector   []byte
+	operations [][]byte
+	delegatedOps []*thirdPartyOp
+	
+}
+
+func NewEmitter (key []byte, signer func (key []byte, m *macaroon.Macaroon) ([]byte, error),  selector []byte) *Emitter {
 	res := Emitter{
 		Environment: Environment{
-			Key:           key,
+			Key:    key,
+			Signer:	signer,
 		},
-		selector:    selector,
+		selector:   selector,
+		operations: make([][]byte, 0),
+		delegatedOps: make([]*thirdPartyOp, 0),
 	}
+	
 	return &res
 }
 
-func (emt *Emitter) DeclareOperations (operations [][]byte) {
-	emt.operationList = operations
+func (emt *Emitter) AuthorizeOperation (op []byte) error {
+	emt.operations = append(emt.operations, op)
+	return nil
 }
 
-/*
-func (env* Environment) makeId (ops []string) ([]byte, error) {
-	strId := strings.Join(ops, "|")
-	id := []byte(strId)
-
-	//cipher, err := aes.NewCipher(env.Key)
-	//if err != nil {
-	//	return nil, fmt.Errorf("Cannot generate macaroon id: %v", err)
-	//}
-	//
-	//enc := cipher2.NewCBCEncrypter(cipher, nil)
-	//
-	//
-	//err = cipher.Encrypt
-
-	return id, nil
+func (emt *Emitter) DelegateAuthorization(op []byte, location string, verificationId []byte) {
+	var d *thirdPartyOp
+	d = new (thirdPartyOp)
+	d.operation = op
+	d.location = location
+	d.verificationId = verificationId
+	
+	emt.delegatedOps = append(emt.delegatedOps, d)
 }
-*/
+
 func (emt* Emitter) EmitMacaroon () (*macaroon.Macaroon, error) {
-	m, err := macaroon.New(emt.Key, emt.selector, "", macaroon.V2)
+	m, err := macaroon.New(emt.selector, "", macaroon.V2)
 	if err != nil {
-		return nil, fmt.Errorf("Cannot create macaroon: %v", err)
+		return nil, fmt.Errorf("cannot create macaroon: %v", err)
 	}
-	for _, v := range emt.operationList {
+	for _, v := range emt.operations {
 		err = m.AddFirstPartyCaveat(v)
 		if err != nil {
-			return nil, fmt.Errorf("Cannot add first-party caveat: %v", err)
+			return nil, fmt.Errorf("cannot add first-party caveat: %v", err)
 		}
+	}
+	for _, d := range emt.delegatedOps {
+		err = m.AddCaveat(d.operation, d.verificationId, d.location)
+		if err != nil {
+			return nil, fmt.Errorf("cannot add third-party caveat: %v", err)
+		}
+	}
+	err = m.Sign(emt.Key, emt.Signer)
+	if err != nil {
+		return nil, fmt.Errorf("cannot sign macaroon: %v", err)
 	}
 	return m, nil
 }
