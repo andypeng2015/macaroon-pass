@@ -1,6 +1,7 @@
 package macaroon
 
 import (
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -15,16 +16,18 @@ func never(string) error {
 	return fmt.Errorf("condition is never true")
 }
 
-//func TestNoCaveats(t *testing.T) {
-//	c := qt.New(t)
-//	rootKey := []byte("secret")
-//	m := MustNew(rootKey, []byte("some id"), "a location", LatestVersion)
-//	c.Assert(m.Location(), qt.Equals, "a location")
-//	c.Assert(m.Id(), qt.DeepEquals, []byte("some id"))
-//
-//	err := m.Verify(rootKey, never, nil)
-//	c.Assert(err, qt.IsNil)
-//}
+func TestNoCaveats(t *testing.T) {
+	c := qt.New(t)
+	rootKey := []byte("secret")
+	m := MustNew([]byte("some id"), "a location", LatestVersion)
+	c.Assert(m.Location(), qt.Equals, "a location")
+	c.Assert(m.Id(), qt.DeepEquals, []byte("some id"))
+	err := m.Sign(MakeKey(rootKey), HmacSha256Signer)
+	c.Assert(err, qt.IsNil)
+
+	err = HmacSha256SignatureVerify(MakeKey(rootKey), m.Macaroon)
+	c.Assert(err, qt.IsNil)
+}
 
 //func TestFirstPartyCaveat(t *testing.T) {
 //	c := qt.New(t)
@@ -96,8 +99,7 @@ func never(string) error {
 
 func TestSetLocation(t *testing.T) {
 	c := qt.New(t)
-	rootKey := []byte("secret")
-	m := MustNew(rootKey, []byte("some id"), "a location", LatestVersion)
+	m := MustNew([]byte("some id"), "a location", LatestVersion)
 	c.Assert(m.Location(), qt.Equals, "a location")
 	m.SetLocation("another location")
 	c.Assert(m.Location(), qt.Equals, "another location")
@@ -243,7 +245,7 @@ var equalTests = []struct {
 func TestEqualNil(t *testing.T) {
 	c := qt.New(t)
 	var nilm *Marshaller
-	var m = MustNew([]byte("k"), []byte("x"), "l", LatestVersion)
+	var m = MustNew([]byte("x"), "l", LatestVersion)
 	c.Assert(nilm.Equal(nilm), qt.Equals, true)
 	c.Assert(nilm.Equal(m), qt.Equals, false)
 	c.Assert(m.Equal(nilm), qt.Equals, false)
@@ -763,7 +765,7 @@ func TestMarshalJSON(t *testing.T) {
 
 func testMarshalJSONWithVersion(c *qt.C, vers Version) {
 	rootKey := []byte("secret")
-	m0 := MustNew(rootKey, []byte("some id"), "a location", vers)
+	m0 := MustNew([]byte("some id"), "a location", vers)
 	err := m0.AddFirstPartyCaveat([]byte("account = 3735928559"))
 	c.Assert(err, qt.IsNil)
 	err = m0.Sign(MakeKey(rootKey), HmacSha256Signer)
@@ -944,7 +946,7 @@ func TestFirstPartyCaveatWithInvalidUTF8(t *testing.T) {
 	rootKey := []byte("secret")
 	badString := "foo\xff"
 
-	m0 := MustNew(rootKey, []byte("some id"), "a location", LatestVersion)
+	m0 := MustNew([]byte("some id"), "a location", LatestVersion)
 	err := m0.AddFirstPartyCaveat([]byte(badString))
 	c.Assert(err, qt.Equals, nil)
 	err = m0.Sign(MakeKey(rootKey), HmacSha256Signer)
@@ -972,32 +974,51 @@ type macaroonSpec struct {
 	location string
 }
 
-//func makeMacaroons(mspecs []macaroonSpec) (rootKey []byte, macaroons []*Macaroon) {
-//	for _, mspec := range mspecs {
-//		macaroons = append(macaroons, makeMacaroon(mspec))
-//	}
-//	primary := macaroons[0]
-//	for _, m := range macaroons[1:] {
-//		m.Bind(primary.Signature())
-//	}
-//	return []byte(mspecs[0].rootKey), macaroons
-//}
-//
-//func makeMacaroon(mspec macaroonSpec) *Macaroon {
-//	m := MustNew([]byte(mspec.rootKey), []byte(mspec.id), mspec.location, LatestVersion)
-//	for _, cav := range mspec.caveats {
-//		if cav.location != "" {
-//			err := m.AddThirdPartyCaveat([]byte(cav.rootKey), []byte(cav.condition), cav.location)
-//			if err != nil {
-//				panic(err)
-//			}
-//		} else {
-//			m.AddFirstPartyCaveat([]byte(cav.condition))
-//		}
-//	}
-//	m.Sign()
-//	return &m.Macaroon
-//}
+func makeMacaroons(mspecs []macaroonSpec) (rootKey []byte, macaroons []*Macaroon) {
+	for _, mspec := range mspecs {
+		macaroons = append(macaroons, makeMacaroon(mspec))
+	}
+	primary := macaroons[0]
+	for _, m := range macaroons[1:] {
+		m.Bind(primary.Signature())
+	}
+	return []byte(mspecs[0].rootKey), macaroons
+}
+
+func makeMacaroon(mspec macaroonSpec) *Macaroon {
+	m := MustNew([]byte(mspec.id), mspec.location, LatestVersion)
+	key := MakeKey([]byte(mspec.rootKey))
+	for _, cav := range mspec.caveats {
+		if cav.location != "" {
+			err := m.Sign(key, HmacSha256Signer)
+			if err != nil {
+				panic(err)
+			}
+			
+			var keyArr, sigArr [32]byte
+			copy(keyArr[:], key)
+			copy(sigArr[:], m.Signature())
+			
+			vid, err := encrypt(&sigArr, &keyArr, rand.Reader)
+			//	if err != nil {
+			//		return err
+			//	}
+			//	m.AddCaveat(caveatId, verificationId, loc)
+			
+			err = m.AddCaveat([]byte(cav.condition), vid, cav.location)
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			m.AddFirstPartyCaveat([]byte(cav.condition))
+		}
+	}
+	err := m.Sign(key, HmacSha256Signer)
+	if err != nil {
+		panic(err)
+	}
+	return &m.Macaroon
+}
 
 func assertEqualMacaroons(c *qt.C, m0, m1 *Macaroon) {
 	marsh0 := Marshaller{Macaroon: *m0}
@@ -1065,7 +1086,7 @@ func TestBinaryFieldBase64Choice(t *testing.T) {
 	c := qt.New(t)
 	for i, test := range binaryFieldBase64ChoiceTests {
 		c.Logf("test %d: %q", i, test.id)
-		m := MustNew([]byte{0}, []byte(test.id), "", LatestVersion)
+		m := MustNew([]byte(test.id), "", LatestVersion)
 		err := m.Sign(MakeKey([]byte{0}), HmacSha256Signer)
 		c.Assert(err, qt.IsNil)
 		data, err := json.Marshal(m)

@@ -19,7 +19,7 @@ func TestMarshalUnmarshalMacaroonV2(t *testing.T) {
 
 func testMarshalUnmarshalWithVersion(c *qt.C, vers Version) {
 	rootKey := []byte("secret")
-	m := MustNew(rootKey, []byte("some id"), "a location", vers)
+	m := MustNew([]byte("some id"), "a location", vers)
 
 	// Adding the third party caveat before the first party caveat
 	// tests a former bug where the caveat wasn't zeroed
@@ -86,7 +86,7 @@ func TestBinaryJSONRoundTripV2(t *testing.T) {
 }
 
 func testBinaryJSONRoundTrip(c *qt.C, vers Version) {
-	m1 := MustNew([]byte("rootkey"), []byte("some id"), "a location", vers)
+	m1 := MustNew([]byte("some id"), "a location", vers)
 	err := m1.AddFirstPartyCaveat([]byte("a caveat"))
 	c.Assert(err, qt.Equals, nil)
 	//err = m1.AddThirdPartyCaveat([]byte("shared root key"), []byte("3rd party caveat"), "remote.com")
@@ -122,8 +122,8 @@ func TestMarshalUnmarshalSliceV2(t *testing.T) {
 
 func testMarshalUnmarshalSliceWithVersion(c *qt.C, vers Version) {
 	rootKey := []byte("secret")
-	m1 := MustNew(rootKey, []byte("some id"), "a location", vers)
-	m2 := MustNew(rootKey, []byte("some other id"), "another location", vers)
+	m1 := MustNew([]byte("some id"), "a location", vers)
+	m2 := MustNew([]byte("some other id"), "another location", vers)
 
 	err := m1.AddFirstPartyCaveat([]byte("a caveat"))
 	c.Assert(err, qt.Equals, nil)
@@ -178,8 +178,8 @@ func TestSliceRoundTripV2(t *testing.T) {
 
 func testSliceRoundTripWithVersion(c *qt.C, vers Version) {
 	rootKey := []byte("secret")
-	m1 := MustNew(rootKey, []byte("some id"), "a location", vers)
-	m2 := MustNew(rootKey, []byte("some other id"), "another location", vers)
+	m1 := MustNew([]byte("some id"), "a location", vers)
+	m2 := MustNew([]byte("some other id"), "another location", vers)
 
 	err := m1.AddFirstPartyCaveat([]byte("a caveat"))
 	c.Assert(err, qt.Equals, nil)

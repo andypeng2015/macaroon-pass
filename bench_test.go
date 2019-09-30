@@ -20,7 +20,7 @@ func BenchmarkNew(b *testing.B) {
 	loc := base64.StdEncoding.EncodeToString(randomBytes(40))
 	b.ResetTimer()
 	for i := b.N - 1; i >= 0; i-- {
-		m := MustNew(rootKey, id, loc, LatestVersion)
+		m := MustNew(id, loc, LatestVersion)
 		m.Sign(MakeKey(rootKey), HmacSha256Signer)
 	}
 }
@@ -32,7 +32,7 @@ func BenchmarkAddCaveat(b *testing.B) {
 	b.ResetTimer()
 	for i := b.N - 1; i >= 0; i-- {
 		b.StopTimer()
-		m := MustNew(rootKey, id, loc, LatestVersion)
+		m := MustNew(id, loc, LatestVersion)
 		b.StartTimer()
 		m.AddFirstPartyCaveat([]byte("some caveat stuff"))
 		m.Sign(MakeKey(rootKey), HmacSha256Signer)
@@ -71,7 +71,7 @@ func BenchmarkMarshalJSON(b *testing.B) {
 	rootKey := randomBytes(24)
 	id := []byte(base64.StdEncoding.EncodeToString(randomBytes(100)))
 	loc := base64.StdEncoding.EncodeToString(randomBytes(40))
-	m := MustNew(rootKey, id, loc, LatestVersion)
+	m := MustNew(id, loc, LatestVersion)
 	m.Sign(MakeKey(rootKey), HmacSha256Signer)
 	b.ResetTimer()
 	for i := b.N - 1; i >= 0; i-- {
@@ -82,7 +82,7 @@ func BenchmarkMarshalJSON(b *testing.B) {
 	}
 }
 
-func MustNew(rootKey, id []byte, loc string, vers Version) *Marshaller {
+func MustNew(id []byte, loc string, vers Version) *Marshaller {
 	m, err := New(id, loc, vers)
 	if err != nil {
 		panic(err)
@@ -96,7 +96,7 @@ func BenchmarkUnmarshalJSON(b *testing.B) {
 	rootKey := randomBytes(24)
 	id := []byte(base64.StdEncoding.EncodeToString(randomBytes(100)))
 	loc := base64.StdEncoding.EncodeToString(randomBytes(40))
-	m := MustNew(rootKey, id, loc, LatestVersion)
+	m := MustNew(id, loc, LatestVersion)
 	m.Sign(MakeKey(rootKey), HmacSha256Signer)
 	data, err := m.MarshalJSON()
 	if err != nil {

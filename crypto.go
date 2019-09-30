@@ -1,6 +1,7 @@
 package macaroon
 
 import (
+	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
 	"fmt"
@@ -26,8 +27,17 @@ func HmacSha256Signer(key []byte, m *Macaroon) ([]byte, error) {
 	return sig, nil
 }
 
-func HmacSha256SignatureVerifier(key []byte, m *Macaroon) error {
-	return fmt.Errorf("Not implemented")
+func HmacSha256SignatureVerify(key []byte, m Macaroon) error {
+	s := m.Signature()
+	err := m.Sign(key, HmacSha256Signer)
+	if err != nil {
+		return fmt.Errorf("signature error: %v", err)
+	}
+	if bytes.Equal(s, m.sig) {
+		return nil
+	} else {
+		return fmt.Errorf("wrong signature")
+	}
 }
 
 func KeyedHash(key []byte, text []byte) []byte {
