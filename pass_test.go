@@ -32,13 +32,16 @@ func (suite *PassTestSuite) SetUpSuite(c *check.C) {
 func (suite *PassTestSuite) TestAuthenticate(c *check.C) {
 	
 	emt := NewEmitter(suite.key, macaroon.HmacSha256Signer, suite.selector)
-	//emt.DeclareOperations(suite.operations)
+	
+	err := emt.AuthorizeOperation(suite.operations[0])
+	c.Assert(err, check.IsNil)
+	err = emt.AuthorizeOperation(suite.operations[1])
+	c.Assert(err, check.IsNil)
 	
 	m, err := emt.EmitMacaroon()
 	c.Assert(err, check.IsNil)
 
-	marshaller := macaroon.Marshaller{*m}
-	buf, err := marshaller.MarshalBinary()
+	buf, err := m.MarshalBinary()
 	c.Assert(err, check.IsNil)
 
 	var u macaroon.Marshaller

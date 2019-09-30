@@ -6,9 +6,11 @@ import (
 	"github.com/ArrowPass/macaroon"
 )
 
+type Signer func(key []byte, macaroon *macaroon.Macaroon) ([]byte, error)
+
 type Environment struct {
 	Key []byte
-	Signer func(key []byte, macaroon *macaroon.Macaroon) ([]byte, error)
+	Signer Signer
 }
 
 func RandomKey(size int) ([]byte, error) {

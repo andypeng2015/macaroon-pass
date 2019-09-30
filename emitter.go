@@ -69,7 +69,7 @@ func (emt *Emitter) DelegateAuthorization(op []byte, location string, verificati
 	emt.delegatedOps = append(emt.delegatedOps, d)
 }
 
-func (emt* Emitter) EmitMacaroon () (*macaroon.Macaroon, error) {
+func (emt* Emitter) EmitMacaroon () (*macaroon.Marshaller, error) {
 	m, err := macaroon.New(emt.selector, "", macaroon.V2)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create macaroon: %v", err)
@@ -90,7 +90,9 @@ func (emt* Emitter) EmitMacaroon () (*macaroon.Macaroon, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign macaroon: %v", err)
 	}
-	return m, nil
+	marsh := macaroon.Marshaller{Macaroon: *m}
+	
+	return &marsh, nil
 }
 
 

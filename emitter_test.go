@@ -20,7 +20,7 @@ func (suite *EmitterTestSuite) SetUpSuite(c *check.C) {
 	suite.key = macaroon.MakeKey(k)
 
 	suite.selector = []byte("123456789012")
-	suite.operations = [][]byte{[]byte("test1"), []byte("test2")}
+	suite.operations = [][]byte{[]byte("invoice12345678"), []byte("das0987654321")}
 }
 
 func (suite *EmitterTestSuite) TestEmitMacaroon (c *check.C) {
