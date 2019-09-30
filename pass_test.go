@@ -17,6 +17,14 @@ type PassTestSuite struct {
 	payOp []byte
 }
 
+func (suite *PassTestSuite) VerifySignature (m *macaroon.Macaroon) error {
+	return macaroon.HmacSha256SignatureVerify(suite.key, *m)
+}
+
+func (suite *PassTestSuite) GetDischargeMacaroon (caveat *macaroon.Caveat) (*macaroon.Macaroon, error) {
+	return nil, nil
+}
+
 var _ = check.Suite(&PassTestSuite{})
 
 func (suite *PassTestSuite) SetUpSuite(c *check.C) {
@@ -48,14 +56,8 @@ func (suite *PassTestSuite) TestAuthenticate(c *check.C) {
 	err = u.UnmarshalBinary(buf)
 	c.Assert(err, check.IsNil)
 
-	//ch, err := NewBaseChecker(func(selector []byte) []byte {
-	//	c.Assert(selector, check.DeepEquals, suite.selector)
-	//	return suite.key
-	//}, u[:])
-	//c.Assert(err, check.IsNil)
-	
-	//err = ch.Authorize(suite.payOp)
-	//c.Assert(err, check.IsNil)
+	err = VerifyMacaroon(&u.Macaroon, suite, suite.operations)
+	c.Assert(err, check.IsNil)
 	
 }
 

@@ -1,55 +1,68 @@
 package macaroon_pass
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/ArrowPass/macaroon"
+	"reflect"
 )
 
-//type OperationsAuthorizer interface {
-//	ExtractOperations(macaroonId []byte) []string
-//}
-
-type CaveatChecker interface {
-	CheckCaveat(environment *Environment, caveat *macaroon.Caveat) error
+type Context interface {
+	VerifySignature (macaroon *macaroon.Macaroon) error
+	GetDischargeMacaroon (caveat *macaroon.Caveat) (*macaroon.Macaroon, error)
 }
 
-type BaseChecker struct {
-	Environment
-	macaroons []macaroon.Macaroon
+type Operation struct {
+	op []byte
+	authorized bool
 }
 
-func NewBaseChecker(keyRequester func([]byte) []byte, macaroons []macaroon.Macaroon) (*BaseChecker, error) {
-	if len(macaroons) < 1 {
-		return nil, fmt.Errorf("No macaroons to check passed")
-	}
-	checker := BaseChecker {
-		Environment:  Environment {
-			Key:           keyRequester(macaroons[0].Id()),
-		},
-		macaroons:     macaroons,
-	}
-	
-	return &checker, checker.authenticate()
-}
-
-func (ch *BaseChecker) authenticate () error {
-	_, err := ch.macaroons[0].VerifySignature(ch.Key, nil)
+func VerifyMacaroon(macaroon *macaroon.Macaroon, context Context, rawOperations [][]byte) error {
+	mOps, err := processMacaroon(macaroon, context)
 	if err != nil {
-		return fmt.Errorf("Macaroon authentication failed: %v", err)
+		return fmt.Errorf("macaroon verification error: %v", err)
+	}
+	for _, rawOp := range rawOperations {
+		found := false
+		for _, op := range mOps {
+			if reflect.DeepEqual(op.op, rawOp) {
+				found = true
+			}
+		}
+		if !found {
+			return fmt.Errorf("macaroon verification error")
+		}
+		
 	}
 	return nil
 }
 
-func (ch *BaseChecker) Authorize (operation []byte) error {
-	
-	for _, cav := range ch.macaroons[0].Caveats() {
-		if bytes.Compare(cav.Id, operation) == 0 {
-			return nil
-		}
+func processMacaroon(macaroon *macaroon.Macaroon, context Context) ([]Operation, error) {
+	err := context.VerifySignature(macaroon)
+	if err != nil {
+		return nil, err
 	}
 	
-	return fmt.Errorf("Cannot authorize: %s", string(operation))
+	var operations []Operation
+	
+	for _, caveat := range macaroon.Caveats() {
+		operations = append(operations, Operation{op:caveat.Id})
+		if caveat.IsThirdParty() {
+			dMacaroon, err := context.GetDischargeMacaroon(&caveat)
+			if err == nil {
+				err = context.VerifySignature(dMacaroon)
+				if err == nil {
+					addOps, err := processMacaroon(dMacaroon, context)
+					if err == nil {
+						operations[len(operations)-1].authorized = true
+					}
+					operations = append(operations, addOps...)
+				}
+			}
+			
+		} else {
+			operations[len(operations)-1].authorized = true
+		}
+	}
+	return operations, err
 }
-
 
