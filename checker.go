@@ -1,9 +1,9 @@
 package macaroon_pass
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/ArrowPass/macaroon"
-	"reflect"
 )
 
 type Context interface {
@@ -24,7 +24,7 @@ func VerifyMacaroon(macaroon *macaroon.Macaroon, context Context, rawOperations 
 	for _, rawOp := range rawOperations {
 		found := false
 		for _, op := range mOps {
-			if reflect.DeepEqual(op.op, rawOp) {
+			if bytes.Equal(op.op, rawOp) {
 				found = true
 			}
 		}
