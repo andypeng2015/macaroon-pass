@@ -202,9 +202,6 @@ func (m *Marshaller) parseBinaryV2(data []byte) ([]byte, error) {
 	if sig.fieldType != fieldSignature {
 		return nil, fmt.Errorf("unexpected field found instead of signature")
 	}
-	if len(sig.data) != hashLen {
-		return nil, fmt.Errorf("signature has unexpected length")
-	}
 	m.sig = sig.data
 	return data, nil
 }
