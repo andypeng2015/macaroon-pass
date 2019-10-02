@@ -27,9 +27,8 @@ func HmacSha256Signer(key []byte, m *Macaroon) ([]byte, error) {
 	return sig, nil
 }
 
-func HmacSha256SignatureVerify(key []byte, m Macaroon) error {
-	s := m.Signature()
-	err := m.Sign(key, HmacSha256Signer)
+func HmacSha256SignatureVerify(key []byte, m *Macaroon) error {
+	s, err := HmacSha256Signer(key, m)
 	if err != nil {
 		return fmt.Errorf("signature error: %v", err)
 	}
