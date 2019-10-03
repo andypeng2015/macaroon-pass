@@ -1,5 +1,5 @@
-github.com/ArrowPass/macaroon v0.0.0-20191002144822-4b02efcef684 h1:PhNKZOBaoL/t7NafTl2ZkXTZzv/tkiDXwSBrsC/Nx08=
-github.com/ArrowPass/macaroon v0.0.0-20191002144822-4b02efcef684/go.mod h1:BgZQ2JkJHDvNomsLgj/q+ABu7p8aD/ZG0diULy7U/cM=
+github.com/ArrowPass/macaroon v0.0.0-20191003133346-1fa09bfe0e53 h1:v0J05rrtTRQyTtrKlPMVNZNSehroC9VyCYe/ZgNBkwQ=
+github.com/ArrowPass/macaroon v0.0.0-20191003133346-1fa09bfe0e53/go.mod h1:BgZQ2JkJHDvNomsLgj/q+ABu7p8aD/ZG0diULy7U/cM=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dchest/blake256 v1.0.0/go.mod h1:xXNWCE1jsAP8DAjP+rKw2MbeqLczjI3TRx2VK+9OEYY=
