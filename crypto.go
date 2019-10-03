@@ -1,7 +1,6 @@
 package macaroon
 
 import (
-	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
 	"fmt"
@@ -18,11 +17,12 @@ func HmacSha256Signer(key []byte, m *Macaroon) ([]byte, error) {
 	sig := KeyedHash(key, m.Id())
 	
 	for _, cav := range m.Caveats() {
-		if len(cav.VerificationId) == 0 {
-			sig = KeyedHash(sig, cav.Id)
-		} else {
-			sig = keyedHash2(sig, cav.VerificationId, cav.Id)
+		data := []byte(nil)
+		if len(cav.VerificationId) != 0 {
+			data = append(data, cav.VerificationId...)
 		}
+		data = append (data, cav.Id...)
+		sig = KeyedHash(sig, data)
 	}
 	return sig, nil
 }
@@ -32,7 +32,7 @@ func HmacSha256SignatureVerify(key []byte, m *Macaroon) error {
 	if err != nil {
 		return fmt.Errorf("signature error: %v", err)
 	}
-	if bytes.Equal(s, m.sig) {
+	if hmac.Equal(s, m.sig) {
 		return nil
 	} else {
 		return fmt.Errorf("wrong signature")
