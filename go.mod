@@ -1,4 +1,4 @@
-module github.com/ArrowPass/macaroon-pass
+module github.com/dcpn-io/macaroon-pass
 
 go 1.12
 
