@@ -9,11 +9,12 @@ import (
 type Context interface {
 	VerifySignature (macaroon *macaroon.Macaroon) error
 	GetDischargeMacaroon (caveat *macaroon.Caveat) (*macaroon.Macaroon, error)
+	ProcessOperation(op []byte) error
 }
 
 type Operation struct {
-	op []byte
-	authorized bool
+	Value      []byte
+	Authorized bool
 }
 
 func VerifyMacaroon(macaroon *macaroon.Macaroon, context Context, rawOperations [][]byte) error {
@@ -23,15 +24,25 @@ func VerifyMacaroon(macaroon *macaroon.Macaroon, context Context, rawOperations 
 	}
 	for _, rawOp := range rawOperations {
 		found := false
-		for _, op := range mOps {
-			if bytes.Equal(op.op, rawOp) {
+		for i, _ := range mOps {
+			if bytes.Equal(mOps[i].Value, rawOp) {
 				found = true
+				mOps[i].Authorized = true
+				break
 			}
 		}
 		if !found {
-			return fmt.Errorf("macaroon verification error")
+			return fmt.Errorf("macaroon verification error: %s" , string(rawOp))
 		}
 		
+	}
+	for _, op := range mOps {
+		if !op.Authorized {
+			err = context.ProcessOperation(op.Value)
+			if err != nil {
+				return fmt.Errorf("condition is not met %s: %v", string(op.Value), err)
+			}
+		}
 	}
 	return nil
 }
@@ -45,24 +56,25 @@ func processMacaroon(macaroon *macaroon.Macaroon, context Context) ([]Operation,
 	var operations []Operation
 	
 	for _, caveat := range macaroon.Caveats() {
-		operations = append(operations, Operation{op:caveat.Id})
+		operations = append(operations, Operation{Value: caveat.Id})
 		if caveat.IsThirdParty() {
 			dMacaroon, err := context.GetDischargeMacaroon(&caveat)
 			if err == nil {
 				err = context.VerifySignature(dMacaroon)
-				if err == nil {
-					addOps, err := processMacaroon(dMacaroon, context)
-					if err == nil {
-						operations[len(operations)-1].authorized = true
-					}
-					operations = append(operations, addOps...)
+				if err != nil {
+					return nil, err
 				}
+				var addOps []Operation
+				addOps, err = processMacaroon(dMacaroon, context)
+				if err != nil {
+					return nil, err
+				}
+				operations = append(operations, addOps...)
+			} else {
+				return nil, err
 			}
-			
-		} else {
-			operations[len(operations)-1].authorized = true
 		}
 	}
-	return operations, err
+	return operations, nil
 }
 

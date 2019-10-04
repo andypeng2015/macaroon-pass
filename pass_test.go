@@ -38,6 +38,16 @@ func (s *PassTestSuite) GetDischargeMacaroon (caveat *macaroon.Caveat) (*macaroo
 	return nil, nil
 }
 
+func (s *PassTestSuite) ProcessOperation(op []byte) error {
+	var err error
+	if bytes.Equal(op, []byte("payment")) {
+		err = nil
+	} else {
+		err = fmt.Errorf("unknown operation: %s", string(op))
+	}
+	return err
+}
+
 var _ = check.Suite(&PassTestSuite{})
 
 func (s *PassTestSuite) SetUpSuite(c *check.C) {
@@ -101,3 +111,21 @@ func (s *PassTestSuite) TestEcdsaSignaturePass (c *check.C) {
 	c.Assert(err, check.IsNil)
 }
 
+func (s *PassTestSuite) TestNilOperations(c *check.C) {
+	
+	emt := NewEmitter(s.key, macaroon.HmacSha256Signer, s.hmacSha256Selector)
+	
+	m, err := emt.EmitMacaroon()
+	c.Assert(err, check.IsNil)
+	
+	buf, err := m.MarshalBinary()
+	c.Assert(err, check.IsNil)
+	
+	var u macaroon.Marshaller
+	err = u.UnmarshalBinary(buf)
+	c.Assert(err, check.IsNil)
+	
+	err = VerifyMacaroon(&u.Macaroon, s, nil)
+	c.Assert(err, check.IsNil)
+	
+}
