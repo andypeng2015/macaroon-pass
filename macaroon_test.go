@@ -25,7 +25,7 @@ func TestNoCaveats(t *testing.T) {
 	err := m.Sign(MakeKey(rootKey), HmacSha256Signer)
 	c.Assert(err, qt.IsNil)
 
-	err = HmacSha256SignatureVerify(MakeKey(rootKey), m.Macaroon)
+	err = HmacSha256SignatureVerify(MakeKey(rootKey), &m.Macaroon)
 	c.Assert(err, qt.IsNil)
 }
 
