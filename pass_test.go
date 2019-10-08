@@ -3,7 +3,6 @@ package macaroon_pass
 import (
 	"bytes"
 	"fmt"
-	"github.com/ArrowPass/macaroon"
 	"github.com/lcpo/threshold"
 	"gopkg.in/check.v1"
 	"testing"
@@ -24,9 +23,9 @@ type PassTestSuite struct {
 	pub                []byte
 }
 
-func (s *PassTestSuite) VerifySignature (m *macaroon.Macaroon) error {
+func (s *PassTestSuite) VerifySignature (m *Macaroon) error {
 	if bytes.Equal(m.Id(), s.hmacSha256Selector) {
-		return macaroon.HmacSha256SignatureVerify(s.key, m)
+		return HmacSha256SignatureVerify(s.key, m)
 	} else if bytes.Equal(m.Id(), s.ecdsaSelector) {
 		return EcdsaSignatureVerify(s.pub, m)
 	} else {
@@ -34,7 +33,7 @@ func (s *PassTestSuite) VerifySignature (m *macaroon.Macaroon) error {
 	}
 }
 
-func (s *PassTestSuite) GetDischargeMacaroon (caveat *macaroon.Caveat) (*macaroon.Macaroon, error) {
+func (s *PassTestSuite) GetDischargeMacaroon (caveat *Caveat) (*Macaroon, error) {
 	return nil, nil
 }
 
@@ -54,7 +53,7 @@ func (s *PassTestSuite) SetUpSuite(c *check.C) {
 	k, err := RandomKey(32)
 	c.Assert(err, check.IsNil)
 
-	s.key = macaroon.MakeKey(k)
+	s.key = MakeKey(k)
 	s.hmacSha256Selector = []byte("HMAC Sha256")
 	s.operations = [][]byte{[]byte("payment"), []byte("read")}
 	s.payOp = []byte("payment")
@@ -67,7 +66,7 @@ func (s *PassTestSuite) SetUpSuite(c *check.C) {
 
 func (s *PassTestSuite) TestAuthenticate(c *check.C) {
 	
-	emt := NewEmitter(s.key, macaroon.HmacSha256Signer, s.hmacSha256Selector)
+	emt := NewEmitter(s.key, HmacSha256Signer, s.hmacSha256Selector)
 	
 	err := emt.AuthorizeOperation(s.operations[0])
 	c.Assert(err, check.IsNil)
@@ -80,7 +79,7 @@ func (s *PassTestSuite) TestAuthenticate(c *check.C) {
 	buf, err := m.MarshalBinary()
 	c.Assert(err, check.IsNil)
 
-	var u macaroon.Marshaller
+	var u Marshaller
 	err = u.UnmarshalBinary(buf)
 	c.Assert(err, check.IsNil)
 
@@ -103,7 +102,7 @@ func (s *PassTestSuite) TestEcdsaSignaturePass (c *check.C) {
 	buf, err := m.MarshalBinary()
 	c.Assert(err, check.IsNil)
 	
-	var u macaroon.Marshaller
+	var u Marshaller
 	err = u.UnmarshalBinary(buf)
 	c.Assert(err, check.IsNil)
 	
@@ -113,7 +112,7 @@ func (s *PassTestSuite) TestEcdsaSignaturePass (c *check.C) {
 
 func (s *PassTestSuite) TestNilOperations(c *check.C) {
 	
-	emt := NewEmitter(s.key, macaroon.HmacSha256Signer, s.hmacSha256Selector)
+	emt := NewEmitter(s.key, HmacSha256Signer, s.hmacSha256Selector)
 	
 	m, err := emt.EmitMacaroon()
 	c.Assert(err, check.IsNil)
@@ -121,7 +120,7 @@ func (s *PassTestSuite) TestNilOperations(c *check.C) {
 	buf, err := m.MarshalBinary()
 	c.Assert(err, check.IsNil)
 	
-	var u macaroon.Marshaller
+	var u Marshaller
 	err = u.UnmarshalBinary(buf)
 	c.Assert(err, check.IsNil)
 	

@@ -3,12 +3,11 @@ package macaroon_pass
 import (
 	"bytes"
 	"fmt"
-	"github.com/ArrowPass/macaroon"
 )
 
 type Context interface {
-	VerifySignature (macaroon *macaroon.Macaroon) error
-	GetDischargeMacaroon (caveat *macaroon.Caveat) (*macaroon.Macaroon, error)
+	VerifySignature (macaroon *Macaroon) error
+	GetDischargeMacaroon (caveat *Caveat) (*Macaroon, error)
 	ProcessOperation(op []byte) error
 }
 
@@ -17,7 +16,7 @@ type Operation struct {
 	Authorized bool
 }
 
-func VerifyMacaroon(macaroon *macaroon.Macaroon, context Context, rawOperations [][]byte) error {
+func VerifyMacaroon(macaroon *Macaroon, context Context, rawOperations [][]byte) error {
 	mOps, err := processMacaroon(macaroon, context)
 	if err != nil {
 		return fmt.Errorf("macaroon verification error: %v", err)
@@ -47,7 +46,7 @@ func VerifyMacaroon(macaroon *macaroon.Macaroon, context Context, rawOperations 
 	return nil
 }
 
-func processMacaroon(macaroon *macaroon.Macaroon, context Context) ([]Operation, error) {
+func processMacaroon(macaroon *Macaroon, context Context) ([]Operation, error) {
 	err := context.VerifySignature(macaroon)
 	if err != nil {
 		return nil, err

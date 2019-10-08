@@ -2,7 +2,6 @@ package macaroon_pass
 
 import (
 	"fmt"
-	"github.com/ArrowPass/macaroon"
 )
 
 // Emitter is the abstraction over macaroon which allows to create new macaroons with different encryption schemes
@@ -21,7 +20,7 @@ import (
 //
 // discharge := RequestDischargeMacaroon()
 //
-// marshaller := macaroon.SliceMarshaller{macaroon, discharge}
+// marshaller := SliceMarshaller{macaroon, discharge}
 // bin, err := marshaller.MarshalBinary()
 
 
@@ -40,7 +39,7 @@ type Emitter struct {
 	
 }
 
-func NewEmitter (key []byte, signer func (key []byte, m *macaroon.Macaroon) ([]byte, error),  selector []byte) *Emitter {
+func NewEmitter (key []byte, signer func (key []byte, m *Macaroon) ([]byte, error),  selector []byte) *Emitter {
 	res := Emitter{
 		Environment: Environment{
 			Key:    key,
@@ -69,8 +68,8 @@ func (emt *Emitter) DelegateAuthorization(op []byte, location string, verificati
 	emt.delegatedOps = append(emt.delegatedOps, d)
 }
 
-func (emt* Emitter) EmitMacaroon () (*macaroon.Marshaller, error) {
-	m, err := macaroon.New(emt.selector, "", macaroon.V2)
+func (emt* Emitter) EmitMacaroon () (*Marshaller, error) {
+	m, err := New(emt.selector, "", V2)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create macaroon: %v", err)
 	}
@@ -90,7 +89,7 @@ func (emt* Emitter) EmitMacaroon () (*macaroon.Marshaller, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign macaroon: %v", err)
 	}
-	marsh := macaroon.Marshaller{Macaroon: *m}
+	marsh := Marshaller{Macaroon: *m}
 	
 	return &marsh, nil
 }

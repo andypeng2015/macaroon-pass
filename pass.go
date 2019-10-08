@@ -4,11 +4,10 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"fmt"
-	"github.com/ArrowPass/macaroon"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 )
 
-type Signer func(key []byte, macaroon *macaroon.Macaroon) ([]byte, error)
+type Signer func(key []byte, macaroon *Macaroon) ([]byte, error)
 
 type Environment struct {
 	Key []byte
@@ -25,7 +24,7 @@ func RandomKey(size int) ([]byte, error) {
 }
 
 
-func calcMacaroonHash(m *macaroon.Macaroon) [sha256.Size]byte {
+func calcMacaroonHash(m *Macaroon) [sha256.Size]byte {
 	msg := m.Id()
 
 	for _, cav := range m.Caveats() {
@@ -39,7 +38,7 @@ func calcMacaroonHash(m *macaroon.Macaroon) [sha256.Size]byte {
 	return hash
 }
 
-func EcdsaSigner(key []byte, m *macaroon.Macaroon) ([]byte, error) {
+func EcdsaSigner(key []byte, m *Macaroon) ([]byte, error) {
 	
 	priv, _ := secp256k1.PrivKeyFromBytes(key)
 	
@@ -52,7 +51,7 @@ func EcdsaSigner(key []byte, m *macaroon.Macaroon) ([]byte, error) {
 	return sig.Serialize(), nil
 }
 
-func EcdsaSignatureVerify(pubKey []byte, m *macaroon.Macaroon) error {
+func EcdsaSignatureVerify(pubKey []byte, m *Macaroon) error {
 	s := m.Signature()
 	if s == nil {
 		return fmt.Errorf("signature is nil")

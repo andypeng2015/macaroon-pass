@@ -12,3 +12,6 @@
 *.out
 
 .idea/*
+
+.idea/**
+*.iml

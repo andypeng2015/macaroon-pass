@@ -1,7 +1,6 @@
 package macaroon_pass
 
 import (
-	"github.com/ArrowPass/macaroon"
 	"gopkg.in/check.v1"
 )
 
@@ -17,14 +16,14 @@ func (suite *EmitterTestSuite) SetUpSuite(c *check.C) {
 	k, err := RandomKey(32)
 	c.Assert(err, check.IsNil)
 	
-	suite.key = macaroon.MakeKey(k)
+	suite.key = MakeKey(k)
 
 	suite.selector = []byte("123456789012")
 	suite.operations = [][]byte{[]byte("invoice12345678"), []byte("das0987654321")}
 }
 
 func (suite *EmitterTestSuite) TestEmitMacaroon (c *check.C) {
-	emitter := NewEmitter(suite.key, macaroon.HmacSha256Signer, suite.selector)
+	emitter := NewEmitter(suite.key, HmacSha256Signer, suite.selector)
 
 	m, err := emitter.EmitMacaroon()
 	c.Assert(err, check.IsNil)
@@ -33,7 +32,7 @@ func (suite *EmitterTestSuite) TestEmitMacaroon (c *check.C) {
 }
 
 func (suite *EmitterTestSuite)  TestEmitMacaroonOperations (c *check.C) {
-	emitter := NewEmitter(suite.key, macaroon.HmacSha256Signer, suite.selector)
+	emitter := NewEmitter(suite.key, HmacSha256Signer, suite.selector)
 	for _, op := range suite.operations {
 		err := emitter.AuthorizeOperation(op)
 		c.Assert(err, check.IsNil)
