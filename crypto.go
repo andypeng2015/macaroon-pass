@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"fmt"
-	"github.com/decred/dcrd/dcrec/secp256k1/v2"
+	"github.com/decred/dcrd/dcrec/secp256k1"
 	"hash"
 	"io"
 	
@@ -14,10 +14,6 @@ import (
 
 type Signer func(key []byte, macaroon *Macaroon) ([]byte, error)
 
-type Environment struct {
-	Key []byte
-	Signer Signer
-}
 
 func RandomKey(size int) ([]byte, error) {
 	buf := make([]byte, size)

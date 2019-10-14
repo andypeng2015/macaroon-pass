@@ -31,25 +31,36 @@ type thirdPartyOp struct {
 }
 
 type Emitter struct {
-	
-	Environment
-	selector   []byte
-	operations [][]byte
+	macaroonBase *Macaroon
+	key          []byte
+	signer       Signer
+	selector     []byte
+	operations   [][]byte
 	delegatedOps []*thirdPartyOp
 	
 }
 
 func NewEmitter (key []byte, signer func (key []byte, m *Macaroon) ([]byte, error),  selector []byte) *Emitter {
 	res := Emitter{
-		Environment: Environment{
-			Key:    key,
-			Signer:	signer,
-		},
-		selector:   selector,
-		operations: make([][]byte, 0),
+		key:          key,
+		signer:       signer,
+		selector:     selector,
+		operations:   make([][]byte, 0),
 		delegatedOps: make([]*thirdPartyOp, 0),
 	}
 	
+	return &res
+}
+
+func RecreateEmitter(key []byte, signer func (key []byte, m *Macaroon) ([]byte, error), m *Macaroon) *Emitter {
+	res := Emitter{
+		macaroonBase: m,
+		key:          key,
+		signer:       signer,
+		selector:     nil,
+		operations:   nil,
+		delegatedOps: nil,
+	}
 	return &res
 }
 
@@ -69,9 +80,13 @@ func (emt *Emitter) DelegateAuthorization(op []byte, location string, verificati
 }
 
 func (emt* Emitter) EmitMacaroon () (*Marshaller, error) {
-	m, err := New(emt.selector, "", V2)
-	if err != nil {
-		return nil, fmt.Errorf("cannot create macaroon: %v", err)
+	var err error
+	m := emt.macaroonBase
+	if m == nil {
+		m, err = New(emt.selector, "", V2)
+		if err != nil {
+			return nil, fmt.Errorf("cannot create macaroon: %v", err)
+		}
 	}
 	for _, v := range emt.operations {
 		err = m.AddFirstPartyCaveat(v)
@@ -85,7 +100,7 @@ func (emt* Emitter) EmitMacaroon () (*Marshaller, error) {
 			return nil, fmt.Errorf("cannot add third-party caveat: %v", err)
 		}
 	}
-	err = m.Sign(emt.Key, emt.Signer)
+	err = m.Sign(emt.key, emt.signer)
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign macaroon: %v", err)
 	}
