@@ -26,13 +26,12 @@ import (
 
 type thirdPartyOp struct {
 	operation []byte
-	location string
-	verificationId []byte
+	location  string
+	nonce     []byte
 }
 
 type Emitter struct {
 	macaroonBase *Macaroon
-	key          []byte
 	signer       Signer
 	selector     []byte
 	operations   [][]byte
@@ -40,9 +39,8 @@ type Emitter struct {
 	
 }
 
-func NewEmitter (key []byte, signer func (key []byte, m *Macaroon) ([]byte, error),  selector []byte) *Emitter {
+func NewEmitter (signer Signer,  selector []byte) *Emitter {
 	res := Emitter{
-		key:          key,
 		signer:       signer,
 		selector:     selector,
 		operations:   make([][]byte, 0),
@@ -52,10 +50,9 @@ func NewEmitter (key []byte, signer func (key []byte, m *Macaroon) ([]byte, erro
 	return &res
 }
 
-func RecreateEmitter(key []byte, signer func (key []byte, m *Macaroon) ([]byte, error), m *Macaroon) *Emitter {
+func RecreateEmitter(signer Signer, m *Macaroon) *Emitter {
 	res := Emitter{
 		macaroonBase: m,
-		key:          key,
 		signer:       signer,
 		selector:     nil,
 		operations:   nil,
@@ -69,17 +66,19 @@ func (emt *Emitter) AuthorizeOperation (op []byte) error {
 	return nil
 }
 
-func (emt *Emitter) DelegateAuthorization(op []byte, location string, verificationId []byte) {
+func (emt *Emitter) DelegateAuthorization(op []byte, location string, verificationId []byte) error {
 	var d *thirdPartyOp
 	d = new (thirdPartyOp)
 	d.operation = op
 	d.location = location
-	d.verificationId = verificationId
+	d.nonce = verificationId
 	
 	emt.delegatedOps = append(emt.delegatedOps, d)
+
+	return nil
 }
 
-func (emt* Emitter) EmitMacaroon () (*Marshaller, error) {
+func (emt* Emitter) EmitMacaroon () (*Macaroon, error) {
 	var err error
 	m := emt.macaroonBase
 	if m == nil {
@@ -95,18 +94,27 @@ func (emt* Emitter) EmitMacaroon () (*Marshaller, error) {
 		}
 	}
 	for _, d := range emt.delegatedOps {
-		err = m.AddCaveat(d.operation, d.verificationId, d.location)
+		err = emt.signer.SignMacaroon(m)
+		if err != nil {
+			return nil, fmt.Errorf("cannot sign macaroon: %v", err)
+		}
+
+		vid, err := emt.signer.SignData(d.nonce)
+		if err != nil {
+			return nil, fmt.Errorf("cannot sign third-party caveat nonce: %v", err)
+		}
+
+		err = m.AddCaveat(d.operation, vid, d.location)
 		if err != nil {
 			return nil, fmt.Errorf("cannot add third-party caveat: %v", err)
 		}
 	}
-	err = m.Sign(emt.key, emt.signer)
+	err = emt.signer.SignMacaroon(m)
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign macaroon: %v", err)
 	}
-	marsh := Marshaller{Macaroon: *m}
-	
-	return &marsh, nil
+
+	return m, nil
 }
 
 

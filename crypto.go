@@ -12,8 +12,6 @@ import (
 	"golang.org/x/crypto/nacl/secretbox"
 )
 
-type Signer func(key []byte, macaroon *Macaroon) ([]byte, error)
-
 
 func RandomKey(size int) ([]byte, error) {
 	buf := make([]byte, size)
@@ -39,17 +37,38 @@ func calcMacaroonHash(m *Macaroon) [sha256.Size]byte {
 	return hash
 }
 
-func EcdsaSigner(key []byte, m *Macaroon) ([]byte, error) {
+type Signer interface {
+	SignMacaroon(m *Macaroon) error
+	SignData([]byte) ([]byte, error)
+}
 
+type EcdsaSigner struct {
+	priv *secp256k1.PrivateKey
+}
+
+func NewEcdsaSigner(key []byte) EcdsaSigner {
 	priv, _ := secp256k1.PrivKeyFromBytes(key)
+	return EcdsaSigner{priv:priv}
+}
 
-	hash := calcMacaroonHash(m)
-
-	sig, err := priv.Sign(hash[:])
+func (s *EcdsaSigner) SignData(data []byte) ([]byte, error) {
+	hash := sha256.Sum256(data)
+	sig, err := s.priv.Sign(hash[:])
 	if err != nil {
-		return nil, fmt.Errorf("cannot make Schnorr sign: %v", err)
+		return nil, fmt.Errorf("cannot make ECDSA signature: %v", err)
 	}
 	return sig.Serialize(), nil
+}
+
+func (s *EcdsaSigner) SignMacaroon (m *Macaroon) error {
+	hash := calcMacaroonHash(m)
+
+	sig, err := s.priv.Sign(hash[:])
+	if err != nil {
+		return fmt.Errorf("cannot make ECDSA signature: %v", err)
+	}
+	m.sig = sig.Serialize()
+	return nil
 }
 
 func EcdsaSignatureVerify(pubKey []byte, m *Macaroon) error {
@@ -75,36 +94,100 @@ func EcdsaSignatureVerify(pubKey []byte, m *Macaroon) error {
 		return fmt.Errorf("wrong signature")
 	}
 }
-func HmacSha256Signer(key []byte, m *Macaroon) ([]byte, error) {
-	if len(key) != 32 {
-		return nil, fmt.Errorf("wrong key length: %d", len(key))
+type HmacSha256Signer struct {
+	key      []byte
+	macaroon *Macaroon
+	nextStep int
+}
+
+func NewHmacSha256Signer(key []byte) (HmacSha256Signer, error) {
+	if len(key) == 0 {
+		return HmacSha256Signer{}, fmt.Errorf("no key was passed when create HMAC SHA256 signer")
 	}
-	sig := KeyedHash(key, m.Id())
-	
-	for _, cav := range m.Caveats() {
+	return HmacSha256Signer{key: key}, nil
+}
+
+func DeriveHmacSha256Signer(m *Macaroon) (HmacSha256Signer, error) {
+	if m == nil {
+		return HmacSha256Signer{}, fmt.Errorf("no macaroon was passed when derive HMAC SHA256 signer")
+	}
+	if len(m.sig) == 0 {
+		return HmacSha256Signer{}, fmt.Errorf("can not use unsigned macaroon to derive HMAC SHA256 signer")
+	}
+
+	return HmacSha256Signer{
+		key:      nil,
+		macaroon: m,
+		nextStep: len(m.caveats) + 1,
+	}, nil
+}
+
+func makeHmacSha256Signature(key []byte, m *Macaroon, step int) ([]byte, error) {
+	if step == 0 {
+		key = HmacSha256KeyedHash(key, m.Id())
+		step++
+	} else if m.sig != nil {
+		key = m.sig
+	} else {
+		return nil, fmt.Errorf("wrong HMAC SHA256 signer state")
+	}
+
+	var i int
+	for i = step-1; i < len(m.caveats); i++ {
+		cav := m.caveats[i]
 		data := []byte(nil)
 		if len(cav.VerificationId) != 0 {
 			data = append(data, cav.VerificationId...)
 		}
 		data = append (data, cav.Id...)
-		sig = KeyedHash(sig, data)
+		key = HmacSha256KeyedHash(key, data)
 	}
-	return sig, nil
+	return key, nil
+}
+
+func (s* HmacSha256Signer) SignMacaroon(m *Macaroon) error {
+	if s.macaroon != nil && s.macaroon != m {
+		return fmt.Errorf("can not sign another macaroon")
+	}
+	if s.macaroon != nil && s.macaroon.sig == nil {
+		return fmt.Errorf("wrong HMAC SHA256 signer state")
+	}
+
+	sig, err := makeHmacSha256Signature(s.key, m, s.nextStep)
+	if err != nil {
+		return err
+	}
+
+	if s.macaroon == nil {
+		s.macaroon = m
+	}
+
+	s.macaroon.sig = sig
+	s.nextStep = len(m.caveats) + 1
+
+	return nil
+}
+
+func (s* HmacSha256Signer) SignData(data []byte) ([]byte, error) {
+	if s.macaroon == nil || s.macaroon.sig == nil {
+		return nil, fmt.Errorf("there is still no incremental signature available")
+	}
+	return HmacSha256KeyedHash(s.macaroon.sig , data), nil
 }
 
 func HmacSha256SignatureVerify(key []byte, m *Macaroon) error {
-	s, err := HmacSha256Signer(key, m)
+	sig, err := makeHmacSha256Signature(key, m, 0)
 	if err != nil {
 		return fmt.Errorf("signature error: %v", err)
 	}
-	if hmac.Equal(s, m.sig) {
+	if hmac.Equal(sig, m.sig) {
 		return nil
 	} else {
 		return fmt.Errorf("wrong signature")
 	}
 }
 
-func KeyedHash(key []byte, text []byte) []byte {
+func HmacSha256KeyedHash(key []byte, text []byte) []byte {
 	h := keyedHasher(key)
 	h.Write([]byte(text))
 	var sum [hashLen]byte
@@ -114,9 +197,9 @@ func KeyedHash(key []byte, text []byte) []byte {
 
 func keyedHash2(key []byte, d1, d2 []byte) []byte {
 	var data [hashLen * 2]byte
-	copy(data[0:], KeyedHash(key, d1)[:])
-	copy(data[hashLen:], KeyedHash(key, d2)[:])
-	return KeyedHash(key, data[:])
+	copy(data[0:], HmacSha256KeyedHash(key, d1)[:])
+	copy(data[hashLen:], HmacSha256KeyedHash(key, d2)[:])
+	return HmacSha256KeyedHash(key, data[:])
 }
 
 func keyedHasher(key []byte) hash.Hash {

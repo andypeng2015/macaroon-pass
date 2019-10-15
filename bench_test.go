@@ -21,7 +21,8 @@ func BenchmarkNew(b *testing.B) {
 	b.ResetTimer()
 	for i := b.N - 1; i >= 0; i-- {
 		m := MustNew(id, loc, LatestVersion)
-		m.Sign(MakeKey(rootKey), HmacSha256Signer)
+		signer, _ := NewHmacSha256Signer(MakeKey(rootKey))
+		m.Sign(&signer)
 	}
 }
 
@@ -35,7 +36,8 @@ func BenchmarkAddCaveat(b *testing.B) {
 		m := MustNew(id, loc, LatestVersion)
 		b.StartTimer()
 		m.AddFirstPartyCaveat([]byte("some caveat stuff"))
-		m.Sign(MakeKey(rootKey), HmacSha256Signer)
+		signer, _ := NewHmacSha256Signer(MakeKey(rootKey))
+		m.Sign(&signer)
 	}
 }
 
@@ -71,8 +73,9 @@ func BenchmarkMarshalJSON(b *testing.B) {
 	rootKey := randomBytes(24)
 	id := []byte(base64.StdEncoding.EncodeToString(randomBytes(100)))
 	loc := base64.StdEncoding.EncodeToString(randomBytes(40))
-	m := MustNew(id, loc, LatestVersion)
-	m.Sign(MakeKey(rootKey), HmacSha256Signer)
+	m := marshaller{MustNew(id, loc, LatestVersion)}
+	signer, _ := NewHmacSha256Signer(MakeKey(rootKey))
+	m.Sign(&signer)
 	b.ResetTimer()
 	for i := b.N - 1; i >= 0; i-- {
 		_, err := m.MarshalJSON()
@@ -82,28 +85,28 @@ func BenchmarkMarshalJSON(b *testing.B) {
 	}
 }
 
-func MustNew(id []byte, loc string, vers Version) *Marshaller {
+func MustNew(id []byte, loc string, vers Version) *Macaroon {
 	m, err := New(id, loc, vers)
 	if err != nil {
 		panic(err)
 	}
 	//m.Sign(MakeKey(rootKey), HmacSha256Signer)
-	res := Marshaller{Macaroon: *m}
-	return &res
+	return m
 }
 
 func BenchmarkUnmarshalJSON(b *testing.B) {
 	rootKey := randomBytes(24)
 	id := []byte(base64.StdEncoding.EncodeToString(randomBytes(100)))
 	loc := base64.StdEncoding.EncodeToString(randomBytes(40))
-	m := MustNew(id, loc, LatestVersion)
-	m.Sign(MakeKey(rootKey), HmacSha256Signer)
+	m := marshaller{MustNew(id, loc, LatestVersion)}
+	signer, _ := NewHmacSha256Signer(MakeKey(rootKey))
+	m.Sign(&signer)
 	data, err := m.MarshalJSON()
 	if err != nil {
 		b.Fatalf("cannot marshal JSON: %v", err)
 	}
 	for i := b.N - 1; i >= 0; i-- {
-		var m Marshaller
+		m := marshaller{&Macaroon{}}
 		err := m.UnmarshalJSON(data)
 		if err != nil {
 			b.Fatalf("cannot unmarshal JSON: %v", err)

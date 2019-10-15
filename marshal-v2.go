@@ -26,7 +26,7 @@ type caveatJSONV2 struct {
 	Location string `json:"l,omitempty"`
 }
 
-func (m *Marshaller) marshalJSONV2() ([]byte, error) {
+func (m *marshaller) marshalJSONV2() ([]byte, error) {
 	mjson := macaroonJSONV2{
 		Location: m.location,
 		Caveats:  make([]caveatJSONV2, len(m.caveats)),
@@ -50,7 +50,7 @@ func (m *Marshaller) marshalJSONV2() ([]byte, error) {
 
 // initJSONV2 initializes m from the JSON-unmarshaled data
 // held in mjson.
-func (m *Marshaller) initJSONV2(mjson *macaroonJSONV2) error {
+func (m *marshaller) initJSONV2(mjson *macaroonJSONV2) error {
 	id, err := jsonBinaryField(mjson.Identifier, mjson.Identifier64)
 	if err != nil {
 		return fmt.Errorf("invalid identifier: %v", err)
@@ -140,7 +140,7 @@ func jsonBinaryField(s, sb64 string) ([]byte, error) {
 // parseBinaryV2 parses the given data in V2 format into the macaroon. The macaroon's
 // internal data structures will retain references to the data. It
 // returns the data after the end of the macaroon.
-func (m *Marshaller) parseBinaryV2(data []byte) ([]byte, error) {
+func (m *marshaller) parseBinaryV2(data []byte) ([]byte, error) {
 	// The version has already been checked, so
 	// skip it.
 	data = data[1:]
@@ -208,7 +208,7 @@ func (m *Marshaller) parseBinaryV2(data []byte) ([]byte, error) {
 
 // appendBinaryV2 appends the binary-encoded macaroon
 // in v2 format to data.
-func (m *Marshaller) appendBinaryV2(data []byte) []byte {
+func (m *marshaller) appendBinaryV2(data []byte) []byte {
 	// Version byte.
 	data = append(data, 2)
 	if len(m.location) > 0 {
