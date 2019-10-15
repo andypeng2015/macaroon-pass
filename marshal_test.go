@@ -32,7 +32,7 @@ func testMarshalUnmarshalWithVersion(c *qt.C, vers Version) {
 	
 	signer, err := NewHmacSha256Signer(MakeKey(rootKey))
 	c.Assert(err, qt.IsNil)
-	err = m.Sign(&signer)
+	err = m.Sign(signer)
 	c.Assert(err, qt.IsNil)
 
 	b, err := m.MarshalBinary()
@@ -96,7 +96,7 @@ func testBinaryJSONRoundTrip(c *qt.C, vers Version) {
 	signer, err := NewHmacSha256Signer(MakeKey([]byte("rootkey")))
 	c.Assert(err, qt.IsNil)
 
-	err = m.Sign(&signer)
+	err = m.Sign(signer)
 	c.Assert(err, qt.IsNil)
 
 	m1 := marshaller{m}
@@ -137,7 +137,7 @@ func testMarshalUnmarshalSliceWithVersion(c *qt.C, vers Version) {
 	s1, err := NewHmacSha256Signer(MakeKey(rootKey))
 	c.Assert(err, qt.IsNil)
 
-	err = m1.Sign(&s1)
+	err = m1.Sign(s1)
 	c.Assert(err, qt.IsNil)
 
 	err = m2.AddFirstPartyCaveat([]byte("another caveat"))
@@ -146,11 +146,11 @@ func testMarshalUnmarshalSliceWithVersion(c *qt.C, vers Version) {
 	s2, err := NewHmacSha256Signer(MakeKey(rootKey))
 	c.Assert(err, qt.IsNil)
 
-	err = m2.Sign(&s2)
+	err = m2.Sign(s2)
 	c.Assert(err, qt.IsNil)
 
 	macaroons :=  [2]*Macaroon{m1, m2}
-	b, err := MarshalBinary(MacaroonSlice{macaroons[:]})
+	b, err := MarshalBinary(&MacaroonSlice{macaroons[:]})
 	c.Assert(err, qt.Equals, nil)
 
 	unmarshaledMacs, err := UnmarshalBinary(b)
@@ -206,7 +206,7 @@ func testSliceRoundTripWithVersion(c *qt.C, vers Version) {
 	s1, err := NewHmacSha256Signer(MakeKey(rootKey))
 	c.Assert(err, qt.IsNil)
 
-	err = m1.Sign(&s1)
+	err = m1.Sign(s1)
 	c.Assert(err, qt.IsNil)
 
 	err = m2.AddFirstPartyCaveat([]byte("another caveat"))
@@ -215,12 +215,12 @@ func testSliceRoundTripWithVersion(c *qt.C, vers Version) {
 	s2, err := NewHmacSha256Signer(MakeKey(rootKey))
 	c.Assert(err, qt.IsNil)
 
-	err = m2.Sign(&s2)
+	err = m2.Sign(s2)
 	c.Assert(err, qt.IsNil)
 
 	macaroons := [2]*Macaroon{m1, m2}
 
-	b, err := MarshalBinary(MacaroonSlice{macaroons[:]})
+	b, err := MarshalBinary(&MacaroonSlice{macaroons[:]})
 	c.Assert(err, qt.Equals, nil)
 
 	unmarshaledMacs, err := UnmarshalBinary(b)

@@ -23,7 +23,7 @@ func TestNoCaveats(t *testing.T) {
 	c.Assert(m.Id(), qt.DeepEquals, []byte("some id"))
 	signer, err := NewHmacSha256Signer(MakeKey(rootKey))
 	c.Assert(err, qt.IsNil)
-	err = m.Sign(&signer)
+	err = m.Sign(signer)
 	c.Assert(err, qt.IsNil)
 
 	err = HmacSha256SignatureVerify(MakeKey(rootKey), m)
@@ -771,7 +771,7 @@ func testMarshalJSONWithVersion(c *qt.C, ver Version) {
 	c.Assert(err, qt.IsNil)
 	signer, err := NewHmacSha256Signer(MakeKey(rootKey))
 	c.Assert(err, qt.IsNil)
-	err = m0.Sign(&signer)
+	err = m0.Sign(signer)
 	c.Assert(err, qt.IsNil)
 	m0JSON, err := json.Marshal(&marshaller{m0})
 	c.Assert(err, qt.IsNil)
@@ -954,7 +954,7 @@ func TestFirstPartyCaveatWithInvalidUTF8(t *testing.T) {
 	c.Assert(err, qt.Equals, nil)
 	signer, err := NewHmacSha256Signer(MakeKey(rootKey))
 	c.Assert(err, qt.IsNil)
-	err = m0.Sign(&signer)
+	err = m0.Sign(signer)
 	c.Assert(err, qt.Equals, nil)
 }
 
@@ -1094,7 +1094,7 @@ func TestBinaryFieldBase64Choice(t *testing.T) {
 		m := marshaller{MustNew([]byte(test.id), "", LatestVersion)}
 		signer, err := NewHmacSha256Signer(MakeKey([]byte{0}))
 		c.Assert(err, qt.IsNil)
-		err = m.Sign(&signer)
+		err = m.Sign(signer)
 		c.Assert(err, qt.IsNil)
 		data, err := json.Marshal(m)
 		c.Assert(err, qt.IsNil)

@@ -23,6 +23,7 @@ func (suite *EmitterTestSuite) SetUpSuite(c *check.C) {
 }
 
 func (suite *EmitterTestSuite) TestEmitMacaroon (c *check.C) {
+	var signer Signer
 	signer, err := NewHmacSha256Signer(suite.key)
 	c.Assert(err, check.IsNil)
 
@@ -35,6 +36,7 @@ func (suite *EmitterTestSuite) TestEmitMacaroon (c *check.C) {
 }
 
 func (suite *EmitterTestSuite)  TestEmitMacaroonOperations (c *check.C) {
+	var signer Signer
 	signer, err := NewHmacSha256Signer(suite.key)
 	c.Assert(err, check.IsNil)
 

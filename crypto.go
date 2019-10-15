@@ -46,9 +46,9 @@ type EcdsaSigner struct {
 	priv *secp256k1.PrivateKey
 }
 
-func NewEcdsaSigner(key []byte) EcdsaSigner {
+func NewEcdsaSigner(key []byte) *EcdsaSigner {
 	priv, _ := secp256k1.PrivKeyFromBytes(key)
-	return EcdsaSigner{priv:priv}
+	return &EcdsaSigner{priv:priv}
 }
 
 func (s *EcdsaSigner) SignData(data []byte) ([]byte, error) {
@@ -100,22 +100,22 @@ type HmacSha256Signer struct {
 	nextStep int
 }
 
-func NewHmacSha256Signer(key []byte) (HmacSha256Signer, error) {
+func NewHmacSha256Signer(key []byte) (*HmacSha256Signer, error) {
 	if len(key) == 0 {
-		return HmacSha256Signer{}, fmt.Errorf("no key was passed when create HMAC SHA256 signer")
+		return nil, fmt.Errorf("no key was passed when create HMAC SHA256 signer")
 	}
-	return HmacSha256Signer{key: key}, nil
+	return &HmacSha256Signer{key: key}, nil
 }
 
-func DeriveHmacSha256Signer(m *Macaroon) (HmacSha256Signer, error) {
+func DeriveHmacSha256Signer(m *Macaroon) (*HmacSha256Signer, error) {
 	if m == nil {
-		return HmacSha256Signer{}, fmt.Errorf("no macaroon was passed when derive HMAC SHA256 signer")
+		return nil, fmt.Errorf("no macaroon was passed when derive HMAC SHA256 signer")
 	}
 	if len(m.sig) == 0 {
-		return HmacSha256Signer{}, fmt.Errorf("can not use unsigned macaroon to derive HMAC SHA256 signer")
+		return nil, fmt.Errorf("can not use unsigned macaroon to derive HMAC SHA256 signer")
 	}
 
-	return HmacSha256Signer{
+	return &HmacSha256Signer{
 		key:      nil,
 		macaroon: m,
 		nextStep: len(m.caveats) + 1,

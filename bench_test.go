@@ -22,7 +22,7 @@ func BenchmarkNew(b *testing.B) {
 	for i := b.N - 1; i >= 0; i-- {
 		m := MustNew(id, loc, LatestVersion)
 		signer, _ := NewHmacSha256Signer(MakeKey(rootKey))
-		m.Sign(&signer)
+		m.Sign(signer)
 	}
 }
 
@@ -37,7 +37,7 @@ func BenchmarkAddCaveat(b *testing.B) {
 		b.StartTimer()
 		m.AddFirstPartyCaveat([]byte("some caveat stuff"))
 		signer, _ := NewHmacSha256Signer(MakeKey(rootKey))
-		m.Sign(&signer)
+		m.Sign(signer)
 	}
 }
 
@@ -75,7 +75,7 @@ func BenchmarkMarshalJSON(b *testing.B) {
 	loc := base64.StdEncoding.EncodeToString(randomBytes(40))
 	m := marshaller{MustNew(id, loc, LatestVersion)}
 	signer, _ := NewHmacSha256Signer(MakeKey(rootKey))
-	m.Sign(&signer)
+	m.Sign(signer)
 	b.ResetTimer()
 	for i := b.N - 1; i >= 0; i-- {
 		_, err := m.MarshalJSON()
@@ -100,7 +100,7 @@ func BenchmarkUnmarshalJSON(b *testing.B) {
 	loc := base64.StdEncoding.EncodeToString(randomBytes(40))
 	m := marshaller{MustNew(id, loc, LatestVersion)}
 	signer, _ := NewHmacSha256Signer(MakeKey(rootKey))
-	m.Sign(&signer)
+	m.Sign(signer)
 	data, err := m.MarshalJSON()
 	if err != nil {
 		b.Fatalf("cannot marshal JSON: %v", err)

@@ -65,7 +65,7 @@ func (s *PassTestSuite) SetUpSuite(c *check.C) {
 }
 
 func (s *PassTestSuite) TestAuthenticate(c *check.C) {
-	
+	var signer Signer
 	signer, err := NewHmacSha256Signer(s.key)
 	c.Assert(err, check.IsNil)
 
@@ -80,7 +80,7 @@ func (s *PassTestSuite) TestAuthenticate(c *check.C) {
 	m, err := emt.EmitMacaroon()
 	c.Assert(err, check.IsNil)
 
-	buf, err := MarshalBinary(MacaroonSlice{[]*Macaroon{m}})
+	buf, err := MarshalBinary(&MacaroonSlice{[]*Macaroon{m}})
 	c.Assert(err, check.IsNil)
 
 	unmarshalled, err := UnmarshalBinary(buf)
@@ -94,7 +94,8 @@ func (s *PassTestSuite) TestAuthenticate(c *check.C) {
 }
 
 func (s *PassTestSuite) TestEcdsaSignaturePass (c *check.C) {
-	signer := NewEcdsaSigner(s.priv)
+	var signer Signer
+	signer = NewEcdsaSigner(s.priv)
 	emt := NewEmitter(&signer, s.ecdsaSelector)
 	
 	err := emt.AuthorizeOperation(s.operations[0])
@@ -105,7 +106,7 @@ func (s *PassTestSuite) TestEcdsaSignaturePass (c *check.C) {
 	m, err := emt.EmitMacaroon()
 	c.Assert(err, check.IsNil)
 
-	buf, err := MarshalBinary(MacaroonSlice{[]*Macaroon{m}})
+	buf, err := MarshalBinary(&MacaroonSlice{[]*Macaroon{m}})
 	c.Assert(err, check.IsNil)
 	
 	u, err := UnmarshalBinary(buf)
@@ -120,6 +121,7 @@ func (s *PassTestSuite) TestEcdsaSignaturePass (c *check.C) {
 
 func (s *PassTestSuite) TestNilOperations(c *check.C) {
 
+	var signer Signer
 	signer, err := NewHmacSha256Signer(s.key)
 	c.Assert(err, check.IsNil)
 
@@ -128,7 +130,7 @@ func (s *PassTestSuite) TestNilOperations(c *check.C) {
 	m, err := emt.EmitMacaroon()
 	c.Assert(err, check.IsNil)
 
-	buf, err := MarshalBinary(MacaroonSlice{[]*Macaroon{m}})
+	buf, err := MarshalBinary(&MacaroonSlice{[]*Macaroon{m}})
 	c.Assert(err, check.IsNil)
 
 	u, err := UnmarshalBinary(buf)
@@ -139,10 +141,10 @@ func (s *PassTestSuite) TestNilOperations(c *check.C) {
 
 	err = VerifyMacaroon(um, s, nil)
 	c.Assert(err, check.IsNil)
-	
 }
 
 func (s *PassTestSuite) TestEmitterWithMacaroonBase(c *check.C) {
+	var signer Signer
 	signer, err := NewHmacSha256Signer(s.key)
 	c.Assert(err, check.IsNil)
 
@@ -151,7 +153,7 @@ func (s *PassTestSuite) TestEmitterWithMacaroonBase(c *check.C) {
 	m, err := emt.EmitMacaroon()
 	c.Assert(err, check.IsNil)
 
-	buf, err := MarshalBinary(MacaroonSlice{[]*Macaroon{m}})
+	buf, err := MarshalBinary(&MacaroonSlice{[]*Macaroon{m}})
 	c.Assert(err, check.IsNil)
 
 	u, err := UnmarshalBinary(buf)
@@ -160,7 +162,10 @@ func (s *PassTestSuite) TestEmitterWithMacaroonBase(c *check.C) {
 	um, err := u.Get(0)
 	c.Assert(err, check.IsNil)
 
-	signer2, err := DeriveHmacSha256Signer(um)
+	var signer2 Signer
+	signer2, err = DeriveHmacSha256Signer(um)
+	c.Assert(err, check.IsNil)
+
 	emt2 := RecreateEmitter(&signer2, um)
 
 	for _, op := range s.operations {
@@ -170,7 +175,7 @@ func (s *PassTestSuite) TestEmitterWithMacaroonBase(c *check.C) {
 	m2, err := emt2.EmitMacaroon()
 	c.Assert(err, check.IsNil)
 
-	buf2, err := MarshalBinary(MacaroonSlice{[]*Macaroon{m2}})
+	buf2, err := MarshalBinary(&MacaroonSlice{[]*Macaroon{m2}})
 	c.Assert(err, check.IsNil)
 
 	u2, err := UnmarshalBinary(buf2)
