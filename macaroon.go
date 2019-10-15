@@ -150,6 +150,15 @@ func (m *Macaroon) Caveats() []Caveat {
 	return m.caveats[0:len(m.caveats):len(m.caveats)]
 }
 
+func (m *Macaroon) GetCaveatById(cavId []byte) *Caveat {
+	for _, cav := range m.caveats {
+		if bytes.Equal(cav.Id, cavId) {
+			return &cav
+		}
+	}
+	return nil
+}
+
 // appendCaveat appends a caveat without modifying the macaroon's signature.
 func (m *Macaroon) appendCaveat(caveatId, verificationId []byte, loc string) {
 	if len(verificationId) == 0 {
