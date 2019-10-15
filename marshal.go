@@ -198,6 +198,10 @@ func (s *MacaroonSlice) Get(n int) (*Macaroon, error) {
 	return s.macaroons[n], nil
 }
 
+func (s *MacaroonSlice) Add(m *Macaroon) {
+	s.macaroons = append(s.macaroons, m)
+}
+
 // MarshalBinary implements encoding.BinaryMarshaler.
 func MarshalBinary(macaroons *MacaroonSlice) ([]byte, error) {
 	var data []byte
