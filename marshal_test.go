@@ -150,15 +150,16 @@ func testMarshalUnmarshalSliceWithVersion(c *qt.C, vers Version) {
 	c.Assert(err, qt.IsNil)
 
 	macaroons :=  [2]*Macaroon{m1, m2}
-	b, err := MarshalBinary(macaroons[:])
+	b, err := MarshalBinary(MacaroonSlice{macaroons[:]})
 	c.Assert(err, qt.Equals, nil)
 
 	unmarshaledMacs, err := UnmarshalBinary(b)
 	c.Assert(err, qt.Equals, nil)
 
-	c.Assert(unmarshaledMacs, qt.HasLen, len(macaroons))
+	c.Assert(unmarshaledMacs.getLength(), qt.Equals, len(macaroons))
 	for i, m := range macaroons {
-		um := unmarshaledMacs[i]
+		um, err := unmarshaledMacs.get(i)
+		c.Assert(err, qt.IsNil)
 		c.Assert(um.Location(), qt.Equals, m.Location())
 		c.Assert(string(um.Id()), qt.Equals, string(m.Id()))
 		c.Assert(um.Signature(), qt.DeepEquals, m.Signature())
@@ -169,12 +170,18 @@ func testMarshalUnmarshalSliceWithVersion(c *qt.C, vers Version) {
 
 	// Check that appending a caveat to the first does not
 	// affect the second.
+	m, err := unmarshaledMacs.get(0)
+	c.Assert(err, qt.IsNil)
 	for i := 0; i < 10; i++ {
-		err = unmarshaledMacs[0].AddFirstPartyCaveat([]byte("caveat"))
+		err = m.AddFirstPartyCaveat([]byte("caveat"))
 		c.Assert(err, qt.Equals, nil)
 	}
-	unmarshaledMacs[1].SetVersion(macaroons[1].Version())
-	c.Assert(unmarshaledMacs[1], qt.DeepEquals, macaroons[1])
+
+
+	m, err = unmarshaledMacs.get(1)
+	c.Assert(err, qt.IsNil)
+	m.SetVersion(macaroons[1].Version())
+	c.Assert(m, qt.DeepEquals, macaroons[1])
 	c.Assert(err, qt.Equals, nil)
 }
 
@@ -213,7 +220,7 @@ func testSliceRoundTripWithVersion(c *qt.C, vers Version) {
 
 	macaroons := [2]*Macaroon{m1, m2}
 
-	b, err := MarshalBinary(macaroons[:])
+	b, err := MarshalBinary(MacaroonSlice{macaroons[:]})
 	c.Assert(err, qt.Equals, nil)
 
 	unmarshaledMacs, err := UnmarshalBinary(b)

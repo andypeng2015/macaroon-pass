@@ -183,11 +183,26 @@ func (m *marshaller) appendBinary(data []byte) ([]byte, error) {
 	}
 }
 
+type MacaroonSlice struct {
+	macaroons []*Macaroon
+}
+
+func (s *MacaroonSlice) getLength() int {
+	return len(s.macaroons)
+}
+
+func (s *MacaroonSlice) get(n int) (*Macaroon, error) {
+	if n < 0 || n >= len(s.macaroons) {
+		return nil, fmt.Errorf("out of bounds error: %v", n)
+	}
+	return s.macaroons[n], nil
+}
+
 // MarshalBinary implements encoding.BinaryMarshaler.
-func MarshalBinary(macaroons []*Macaroon) ([]byte, error) {
+func MarshalBinary(macaroons *MacaroonSlice) ([]byte, error) {
 	var data []byte
 	var err error
-	for _, m := range macaroons {
+	for _, m := range macaroons.macaroons {
 		marsh := marshaller{m}
 		data, err = marsh.appendBinary(data)
 		if err != nil {
@@ -200,7 +215,7 @@ func MarshalBinary(macaroons []*Macaroon) ([]byte, error) {
 // UnmarshalBinary implements encoding.BinaryUnmarshaler.
 // It accepts all known binary encodings for the data - all the
 // embedded macaroons need not be encoded in the same format.
-func UnmarshalBinary(data []byte) ([]*Macaroon, error) {
+func UnmarshalBinary(data []byte) (*MacaroonSlice, error) {
 	// Prevent the internal data structures from holding onto the
 	// slice by copying it first.
 	data = append([]byte(nil), data...)
@@ -214,7 +229,7 @@ func UnmarshalBinary(data []byte) ([]*Macaroon, error) {
 		macaroons = append(macaroons, m.Macaroon)
 		data = rest
 	}
-	return macaroons, nil
+	return &MacaroonSlice{macaroons}, nil
 }
 
 const (
