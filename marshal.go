@@ -187,11 +187,11 @@ type MacaroonSlice struct {
 	macaroons []*Macaroon
 }
 
-func (s *MacaroonSlice) getLength() int {
+func (s *MacaroonSlice) GetLength() int {
 	return len(s.macaroons)
 }
 
-func (s *MacaroonSlice) get(n int) (*Macaroon, error) {
+func (s *MacaroonSlice) Get(n int) (*Macaroon, error) {
 	if n < 0 || n >= len(s.macaroons) {
 		return nil, fmt.Errorf("out of bounds error: %v", n)
 	}

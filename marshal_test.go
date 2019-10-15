@@ -156,9 +156,9 @@ func testMarshalUnmarshalSliceWithVersion(c *qt.C, vers Version) {
 	unmarshaledMacs, err := UnmarshalBinary(b)
 	c.Assert(err, qt.Equals, nil)
 
-	c.Assert(unmarshaledMacs.getLength(), qt.Equals, len(macaroons))
+	c.Assert(unmarshaledMacs.GetLength(), qt.Equals, len(macaroons))
 	for i, m := range macaroons {
-		um, err := unmarshaledMacs.get(i)
+		um, err := unmarshaledMacs.Get(i)
 		c.Assert(err, qt.IsNil)
 		c.Assert(um.Location(), qt.Equals, m.Location())
 		c.Assert(string(um.Id()), qt.Equals, string(m.Id()))
@@ -170,7 +170,7 @@ func testMarshalUnmarshalSliceWithVersion(c *qt.C, vers Version) {
 
 	// Check that appending a caveat to the first does not
 	// affect the second.
-	m, err := unmarshaledMacs.get(0)
+	m, err := unmarshaledMacs.Get(0)
 	c.Assert(err, qt.IsNil)
 	for i := 0; i < 10; i++ {
 		err = m.AddFirstPartyCaveat([]byte("caveat"))
@@ -178,7 +178,7 @@ func testMarshalUnmarshalSliceWithVersion(c *qt.C, vers Version) {
 	}
 
 
-	m, err = unmarshaledMacs.get(1)
+	m, err = unmarshaledMacs.Get(1)
 	c.Assert(err, qt.IsNil)
 	m.SetVersion(macaroons[1].Version())
 	c.Assert(m, qt.DeepEquals, macaroons[1])
