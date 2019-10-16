@@ -3,7 +3,7 @@ package macaroon_pass
 import (
 	"bytes"
 	"fmt"
-	"github.com/lcpo/threshold"
+	"github.com/dcpn-io/threshold"
 	"gopkg.in/check.v1"
 	"testing"
 )
