@@ -23,11 +23,10 @@ func (suite *EmitterTestSuite) SetUpSuite(c *check.C) {
 }
 
 func (suite *EmitterTestSuite) TestEmitMacaroon (c *check.C) {
-	var signer Signer
 	signer, err := NewHmacSha256Signer(suite.key)
 	c.Assert(err, check.IsNil)
 
-	emitter := NewEmitter(&signer, suite.selector)
+	emitter := NewEmitter(signer, suite.selector)
 
 	m, err := emitter.EmitMacaroon()
 	c.Assert(err, check.IsNil)
@@ -40,7 +39,7 @@ func (suite *EmitterTestSuite)  TestEmitMacaroonOperations (c *check.C) {
 	signer, err := NewHmacSha256Signer(suite.key)
 	c.Assert(err, check.IsNil)
 
-	emitter := NewEmitter(&signer, suite.selector)
+	emitter := NewEmitter(signer, suite.selector)
 
 	for _, op := range suite.operations {
 		err := emitter.AuthorizeOperation(op)

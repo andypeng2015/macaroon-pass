@@ -65,11 +65,10 @@ func (s *PassTestSuite) SetUpSuite(c *check.C) {
 }
 
 func (s *PassTestSuite) TestAuthenticate(c *check.C) {
-	var signer Signer
 	signer, err := NewHmacSha256Signer(s.key)
 	c.Assert(err, check.IsNil)
 
-	emt := NewEmitter(&signer, s.hmacSha256Selector)
+	emt := NewEmitter(signer, s.hmacSha256Selector)
 	
 	err = emt.AuthorizeOperation(s.operations[0])
 	c.Assert(err, check.IsNil)
@@ -94,9 +93,8 @@ func (s *PassTestSuite) TestAuthenticate(c *check.C) {
 }
 
 func (s *PassTestSuite) TestEcdsaSignaturePass (c *check.C) {
-	var signer Signer
-	signer = NewEcdsaSigner(s.priv)
-	emt := NewEmitter(&signer, s.ecdsaSelector)
+	signer := NewEcdsaSigner(s.priv)
+	emt := NewEmitter(signer, s.ecdsaSelector)
 	
 	err := emt.AuthorizeOperation(s.operations[0])
 	c.Assert(err, check.IsNil)
@@ -120,12 +118,10 @@ func (s *PassTestSuite) TestEcdsaSignaturePass (c *check.C) {
 }
 
 func (s *PassTestSuite) TestNilOperations(c *check.C) {
-
-	var signer Signer
 	signer, err := NewHmacSha256Signer(s.key)
 	c.Assert(err, check.IsNil)
 
-	emt := NewEmitter(&signer, s.hmacSha256Selector)
+	emt := NewEmitter(signer, s.hmacSha256Selector)
 	
 	m, err := emt.EmitMacaroon()
 	c.Assert(err, check.IsNil)
@@ -144,11 +140,10 @@ func (s *PassTestSuite) TestNilOperations(c *check.C) {
 }
 
 func (s *PassTestSuite) TestEmitterWithMacaroonBase(c *check.C) {
-	var signer Signer
 	signer, err := NewHmacSha256Signer(s.key)
 	c.Assert(err, check.IsNil)
 
-	emt := NewEmitter(&signer, s.hmacSha256Selector)
+	emt := NewEmitter(signer, s.hmacSha256Selector)
 
 	m, err := emt.EmitMacaroon()
 	c.Assert(err, check.IsNil)
@@ -166,7 +161,7 @@ func (s *PassTestSuite) TestEmitterWithMacaroonBase(c *check.C) {
 	signer2, err = DeriveHmacSha256Signer(um)
 	c.Assert(err, check.IsNil)
 
-	emt2 := RecreateEmitter(&signer2, um)
+	emt2 := RecreateEmitter(signer2, um)
 
 	for _, op := range s.operations {
 		emt2.AuthorizeOperation(op)

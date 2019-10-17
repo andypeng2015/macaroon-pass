@@ -32,14 +32,14 @@ type thirdPartyOp struct {
 
 type Emitter struct {
 	macaroonBase *Macaroon
-	signer       *Signer
+	signer       Signer
 	selector     []byte
 	operations   [][]byte
 	delegatedOps []*thirdPartyOp
 	
 }
 
-func NewEmitter (signer *Signer,  selector []byte) *Emitter {
+func NewEmitter (signer Signer,  selector []byte) *Emitter {
 	res := Emitter{
 		signer:       signer,
 		selector:     selector,
@@ -50,7 +50,7 @@ func NewEmitter (signer *Signer,  selector []byte) *Emitter {
 	return &res
 }
 
-func RecreateEmitter(signer *Signer, m *Macaroon) *Emitter {
+func RecreateEmitter(signer Signer, m *Macaroon) *Emitter {
 	res := Emitter{
 		macaroonBase: m,
 		signer:       signer,
@@ -94,12 +94,12 @@ func (emt* Emitter) EmitMacaroon () (*Macaroon, error) {
 		}
 	}
 	for _, d := range emt.delegatedOps {
-		err = (*emt.signer).SignMacaroon(m)
+		err = emt.signer.SignMacaroon(m)
 		if err != nil {
 			return nil, fmt.Errorf("cannot sign macaroon: %v", err)
 		}
 
-		vid, err := (*emt.signer).SignData(d.nonce)
+		vid, err := emt.signer.SignData(d.nonce)
 		if err != nil {
 			return nil, fmt.Errorf("cannot sign third-party caveat nonce: %v", err)
 		}
@@ -109,7 +109,7 @@ func (emt* Emitter) EmitMacaroon () (*Macaroon, error) {
 			return nil, fmt.Errorf("cannot add third-party caveat: %v", err)
 		}
 	}
-	err = (*emt.signer).SignMacaroon(m)
+	err = emt.signer.SignMacaroon(m)
 	if err != nil {
 		return nil, fmt.Errorf("cannot sign macaroon: %v", err)
 	}
