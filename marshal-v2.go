@@ -195,14 +195,17 @@ func (m *marshaller) parseBinaryV2(data []byte) ([]byte, error) {
 		cav.VerificationId = section[0].data
 		m.caveats = append(m.caveats, cav)
 	}
-	data, sig, err := parsePacketV2(data)
-	if err != nil {
-		return nil, err
+	if len(data) > 0 {
+		var sig packetV2
+		data, sig, err = parsePacketV2(data)
+		if err != nil {
+			return nil, err
+		}
+		if sig.fieldType != fieldSignature {
+			return nil, fmt.Errorf("unexpected field found instead of signature")
+		}
+		m.sig = sig.data
 	}
-	if sig.fieldType != fieldSignature {
-		return nil, fmt.Errorf("unexpected field found instead of signature")
-	}
-	m.sig = sig.data
 	return data, nil
 }
 
@@ -241,10 +244,12 @@ func (m *marshaller) appendBinaryV2(data []byte) []byte {
 		}
 		data = appendEOSV2(data)
 	}
-	data = appendEOSV2(data)
-	data = appendPacketV2(data, packetV2{
-		fieldType: fieldSignature,
-		data:      m.sig[:],
-	})
+	if m.sig != nil {
+		data = appendEOSV2(data)
+		data = appendPacketV2(data, packetV2{
+			fieldType: fieldSignature,
+			data:      m.sig[:],
+		})
+	}
 	return data
 }

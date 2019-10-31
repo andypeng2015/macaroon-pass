@@ -298,3 +298,7 @@ func (m *Macaroon) Sign(signer Signer) error {
 	}
 	return nil
 }
+
+func (m *Macaroon) EraseSignature() {
+	m.sig = nil
+}

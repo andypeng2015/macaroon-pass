@@ -170,9 +170,6 @@ func (m *marshaller) MarshalBinary() ([]byte, error) {
 // the given data, formatting it according to the macaroon's
 // version.
 func (m *marshaller) appendBinary(data []byte) ([]byte, error) {
-	if len(m.Signature()) == 0 {
-		return nil, fmt.Errorf("cannot marshal unsigned macaroon")
-	}
 	switch m.version {
 	case V1:
 		return m.appendBinaryV1(data)
