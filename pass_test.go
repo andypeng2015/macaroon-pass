@@ -2,6 +2,7 @@ package macaroon_pass
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"github.com/dcpn-io/threshold"
 	"gopkg.in/check.v1"
@@ -164,7 +165,8 @@ func (s *PassTestSuite) TestEmitterWithMacaroonBase(c *check.C) {
 	emt2 := RecreateEmitter(signer2, um)
 
 	for _, op := range s.operations {
-		emt2.AuthorizeOperation(op)
+		err = emt2.AuthorizeOperation(op)
+		c.Assert(err, check.IsNil)
 	}
 
 	m2, err := emt2.EmitMacaroon()
@@ -180,5 +182,62 @@ func (s *PassTestSuite) TestEmitterWithMacaroonBase(c *check.C) {
 	c.Assert(err, check.IsNil)
 
 	err = VerifyMacaroon(um2, s, s.operations)
+	c.Assert(err, check.IsNil)
+}
+
+func (s *PassTestSuite) TestPassWithEcdsa(c *check.C) {
+	signer := NewEcdsaSigner(s.priv)
+
+	emt := NewEmitter(signer, s.ecdsaSelector)
+
+	err := emt.AuthorizeOperation([]byte("das " + "DAS ID"))
+	c.Assert(err, check.IsNil)
+
+	m, err := emt.EmitMacaroon()
+	c.Assert(err, check.IsNil)
+
+	macaroonSlice := &MacaroonSlice{}
+	macaroonSlice.Add(m)
+
+	mcrn, err := macaroonSlice.Get(0)
+
+	c.Assert(err, check.IsNil)
+	c.Logf("Macaroon: Macaroon: ID: " + string(mcrn.Id()))
+	c.Logf("Macaroon: Macaroon: Sign: " + hex.EncodeToString(mcrn.Signature()))
+
+	for i, caveat := range mcrn.Caveats() {
+		c.Logf("  Caveat %v ID: " + string(caveat.Id), i)
+		c.Logf("  Caveat %v VerificationId: " + string(caveat.VerificationId), i)
+		c.Logf("  Caveat %v Location: " + caveat.Location, i)
+	}
+
+	data, err := MarshalBinary(macaroonSlice)
+	c.Assert(err, check.IsNil)
+
+	unmarshalled, err := UnmarshalBinary(data)
+	c.Assert(err, check.IsNil)
+
+	mcrn1, err := unmarshalled.Get(0)
+	c.Assert(err, check.IsNil)
+
+	c.Logf("Unmarshalled: Macaroon: ID: " + string(mcrn1.Id()))
+	c.Logf("Unmarshalled: Macaroon: Sign: " + hex.EncodeToString(mcrn1.Signature()))
+
+	c.Assert(mcrn1.Id(), check.DeepEquals, mcrn.Id())
+	c.Assert(mcrn1.Signature(), check.DeepEquals, mcrn.Signature())
+
+	for i, caveat1 := range mcrn1.Caveats() {
+		c.Logf("  Caveat %v ID: " + string(caveat1.Id), i)
+		c.Logf("  Caveat %v VerificationId: " + string(caveat1.VerificationId), i)
+		c.Logf("  Caveat %v Location: " + caveat1.Location, i)
+
+		caveat := mcrn.Caveats()[i]
+
+		c.Assert(caveat1.Id, check.DeepEquals, caveat.Id)
+		c.Assert(caveat1.VerificationId, check.DeepEquals, caveat.VerificationId)
+		c.Assert(caveat1.Location, check.DeepEquals, caveat.Location)
+	}
+
+	err = VerifyMacaroon(mcrn1, s, [][]byte {[]byte("das " + "DAS ID")})
 	c.Assert(err, check.IsNil)
 }
