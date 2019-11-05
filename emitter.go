@@ -1,7 +1,9 @@
 package macaroon_pass
 
 import (
+	"encoding/hex"
 	"fmt"
+	"log"
 )
 
 // Emitter is the abstraction over macaroon which allows to create new macaroons with different encryption schemes
@@ -62,7 +64,11 @@ func RecreateEmitter(signer Signer, m *Macaroon) *Emitter {
 }
 
 func (emt *Emitter) AuthorizeOperation (op []byte) error {
+
 	emt.operations = append(emt.operations, op)
+
+	log.Printf("New caveat: %v", string(op))
+
 	return nil
 }
 
@@ -72,7 +78,9 @@ func (emt *Emitter) DelegateAuthorization(op []byte, location string, verificati
 	d.operation = op
 	d.location = location
 	d.nonce = verificationId
-	
+
+	log.Printf("New caveat: %v, location: %v, vid: %v", string(op), location, hex.EncodeToString(verificationId))
+
 	emt.delegatedOps = append(emt.delegatedOps, d)
 
 	return nil
