@@ -107,12 +107,7 @@ func (emt* Emitter) EmitMacaroon () (*Macaroon, error) {
 			return nil, fmt.Errorf("cannot sign macaroon: %v", err)
 		}
 
-		vid, err := emt.signer.SignData(d.nonce)
-		if err != nil {
-			return nil, fmt.Errorf("cannot sign third-party caveat nonce: %v", err)
-		}
-
-		err = m.AddCaveat(d.operation, vid, d.location)
+		err = m.AddCaveat(d.operation, d.nonce, d.location)
 		if err != nil {
 			return nil, fmt.Errorf("cannot add third-party caveat: %v", err)
 		}
