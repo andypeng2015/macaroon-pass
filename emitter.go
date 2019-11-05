@@ -96,12 +96,15 @@ func (emt* Emitter) EmitMacaroon () (*Macaroon, error) {
 		}
 	}
 	for _, v := range emt.operations {
+		log.Printf("Adding caveat: %v", hex.EncodeToString(v))
 		err = m.AddFirstPartyCaveat(v)
 		if err != nil {
 			return nil, fmt.Errorf("cannot add first-party caveat: %v", err)
 		}
 	}
 	for _, d := range emt.delegatedOps {
+		log.Printf("Adding 3-rd party caveat: %v, loc: %v, vid: %v", string(d.operation), d.location, hex.EncodeToString(d.nonce))
+
 		err = emt.signer.SignMacaroon(m)
 		if err != nil {
 			return nil, fmt.Errorf("cannot sign macaroon: %v", err)
