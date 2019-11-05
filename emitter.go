@@ -65,7 +65,9 @@ func RecreateEmitter(signer Signer, m *Macaroon) *Emitter {
 
 func (emt *Emitter) AuthorizeOperation (op []byte) error {
 
-	emt.operations = append(emt.operations, op)
+	newOp := make([]byte, len(op))
+	copy(newOp, op)
+	emt.operations = append(emt.operations, newOp)
 
 	log.Printf("New caveat: %v", string(op))
 
@@ -73,15 +75,23 @@ func (emt *Emitter) AuthorizeOperation (op []byte) error {
 }
 
 func (emt *Emitter) DelegateAuthorization(op []byte, location string, verificationId []byte) error {
-	var d *thirdPartyOp
-	d = new (thirdPartyOp)
-	d.operation = op
-	d.location = location
-	d.nonce = verificationId
+	d := thirdPartyOp{
+		operation: make([]byte, len(op)),
+		nonce:     make([]byte, len(verificationId)),
+	}
+
+	copy(d.operation, op)
+	copy(d.nonce, verificationId)
+
+	locationBytes := []byte(location)
+	locationCopyBytes := make([]byte, len(locationBytes))
+	copy(locationCopyBytes, locationBytes)
+
+	d.location = string(locationCopyBytes)
 
 	log.Printf("New caveat: %v, location: %v, vid: %v", string(op), location, hex.EncodeToString(verificationId))
 
-	emt.delegatedOps = append(emt.delegatedOps, d)
+	emt.delegatedOps = append(emt.delegatedOps, &d)
 
 	return nil
 }
