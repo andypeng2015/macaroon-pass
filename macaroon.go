@@ -302,3 +302,9 @@ func (m *Macaroon) Sign(signer Signer) error {
 func (m *Macaroon) EraseSignature() {
 	m.sig = nil
 }
+
+func (m *Macaroon) SetSignature(sig []byte) {
+	newSig := make([]byte, len(sig))
+	copy(newSig, sig)
+	m.sig = newSig
+}
