@@ -159,7 +159,7 @@ func (m *marshaller) parseBinaryV2(data []byte) ([]byte, error) {
 	}
 	id := section[0].data
 	m.init(id, loc, V2)
-	for {
+	for len(data) > 0 {
 		rest, section, err := parseSectionV2(data)
 		if err != nil {
 			return nil, err

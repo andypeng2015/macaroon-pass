@@ -241,3 +241,57 @@ func (s *PassTestSuite) TestPassWithEcdsa(c *check.C) {
 	err = VerifyMacaroon(mcrn1, s, [][]byte {[]byte("das " + "DAS ID")})
 	c.Assert(err, check.IsNil)
 }
+
+func (s *PassTestSuite) TestPassSeparateSignature(c *check.C) {
+	signer, err := NewHmacSha256Signer(s.key)
+	c.Assert(err, check.IsNil)
+
+	emt := NewEmitter(signer, s.hmacSha256Selector)
+
+	err = emt.AuthorizeOperation([]byte("das " + "DAS_ID"))
+	c.Assert(err, check.IsNil)
+
+	m, err := emt.EmitMacaroon()
+	c.Assert(err, check.IsNil)
+
+	sig := m.Signature()
+	c.Assert(sig, check.NotNil)
+
+	m.EraseSignature()
+	c.Assert(m.Signature(), check.IsNil)
+
+	macaroonSlice := &MacaroonSlice{}
+	macaroonSlice.Add(m)
+
+	data, err := MarshalBinary(macaroonSlice)
+	c.Assert(err, check.IsNil)
+
+	unmarshalled, err := UnmarshalBinary(data)
+	c.Assert(err, check.IsNil)
+
+	m1, err := unmarshalled.Get(0)
+	c.Assert(err, check.IsNil)
+
+	c.Logf("Unmarshalled: Macaroon: ID: " + string(m1.Id()))
+	c.Assert(m1.Id(), check.DeepEquals, m.Id())
+
+	m1.SetSignature(sig)
+
+	c.Logf("Unmarshalled: Macaroon: Sign: " + hex.EncodeToString(m1.Signature()))
+	c.Assert(m1.Signature(), check.DeepEquals, sig)
+
+	for i, caveat1 := range m1.Caveats() {
+		c.Logf("  Caveat %v ID: " + string(caveat1.Id), i)
+		c.Logf("  Caveat %v VerificationId: " + string(caveat1.VerificationId), i)
+		c.Logf("  Caveat %v Location: " + caveat1.Location, i)
+
+		caveat := m.Caveats()[i]
+
+		c.Assert(caveat1.Id, check.DeepEquals, caveat.Id)
+		c.Assert(caveat1.VerificationId, check.DeepEquals, caveat.VerificationId)
+		c.Assert(caveat1.Location, check.DeepEquals, caveat.Location)
+	}
+
+	err = VerifyMacaroon(m1, s, [][]byte {[]byte("das " + "DAS_ID")})
+	c.Assert(err, check.IsNil)
+}
