@@ -181,12 +181,19 @@ func (m *Macaroon) AddCaveat(caveatId, verificationId []byte, loc string) error 
 		}
 		// TODO check caveat length too.
 	}
-	m.appendCaveat(caveatId, verificationId, loc)
-	//if len(verificationId) == 0 {
-	//	m.sig = *HmacSha256KeyedHash(&m.sig, caveatId)
-	//} else {
-	//	m.sig = *keyedHash2(&m.sig, verificationId, caveatId)
-	//}
+
+	cavIdCopy := make([]byte, len(caveatId))
+	copy(cavIdCopy, caveatId)
+
+	vIdCopy := make([]byte, len(verificationId))
+	copy(vIdCopy, verificationId)
+
+	locationBytes := []byte(loc)
+	locationCopyBytes := make([]byte, len(locationBytes))
+	copy(locationCopyBytes, locationBytes)
+
+	m.appendCaveat(cavIdCopy, vIdCopy, string(locationCopyBytes))
+
 	return nil
 }
 
