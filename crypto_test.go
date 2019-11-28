@@ -2,7 +2,9 @@ package macaroon_pass
 
 import (
 	"crypto/rand"
+	"encoding/hex"
 	"fmt"
+	"log"
 	"testing"
 
 	qt "github.com/frankban/quicktest"
@@ -64,4 +66,27 @@ func randomBytes(n int) []byte {
 		panic(err)
 	}
 	return buf
+}
+
+func TestHmacSha256KeyedHash(t *testing.T) {
+	c := qt.New(t)
+	var testKey = "00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFF"
+	var testData = "22aa56f9398857389812982183123412374723472134981290312933edfc7c92d921de7d67ededee8c"
+	var testResult = "e78b43cfb2d407b1f71886447a2cd2ef89b0c5891c1ba99ac4216bfc2aa1f0fc"
+
+	decodedKey, errKey := hex.DecodeString(testKey)
+	if errKey != nil {
+		log.Fatal(errKey)
+	}
+
+	decodedData, errData := hex.DecodeString(testData)
+	if errData != nil {
+		log.Fatal(errData)
+	}
+
+	res := HmacSha256KeyedHash(decodedKey, decodedData)
+
+	encodedStr := hex.EncodeToString(res)
+
+	c.Assert(encodedStr, qt.DeepEquals, testResult)
 }
