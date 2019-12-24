@@ -22,6 +22,18 @@ type PassTestSuite struct {
 	ecdsaSelector      []byte
 	priv               []byte
 	pub                []byte
+
+	cardKey []byte
+	cardId []byte
+	random []byte
+	vID      []byte
+	payCavId []byte
+	dasCavId []byte
+	amountCavId []byte
+
+	baseSignature []byte
+	resultSignature []byte
+
 }
 
 func (s *PassTestSuite) VerifySignature (m *Macaroon) error {
@@ -63,6 +75,17 @@ func (s *PassTestSuite) SetUpSuite(c *check.C) {
 	priv, pub, _ := threshold.GenerateKeys()
 	s.priv = priv.Serialize()
 	s.pub = pub.Serialize()
+
+	s.cardKey,_ = hex.DecodeString("7f2b5755de2b52f3e843d2ba15c42f948e806a18c73b450e88258f5f45c0ffdc")
+	s.cardId,_ = hex.DecodeString("3030303030303030303030303030303030303030303033334130383130303034")
+	s.random,_ = hex.DecodeString("40C1750299AF1C704B46B96342294480DEC6DBEFCFA481FF8EB29F5431C3384918409BD18AE87FB51AFBDB5F99E39EB690975C36E07E12F99D099DBC0F8E7401")
+	s.payCavId = []byte("payment lntb120u1pw7fh3spp5j5d27q84eykgz6l9lj86gpu9fpnnn7qp6d3ux24vufgjjrrpd6dsdp9g9e8ymmh2pshxueqw3jhxapqwp6hycmgv9ek2cqzpgxqzfvuh99cjcz74wpnlne4w788fsjx0m9jgv365u9hem7fzrrtf2uluprnfvwnlt5pqjw9dlfd8azr8g7wdxtwg09td32008ah53axkcp77gq9pc768")
+	s.dasCavId = []byte("DAS 9FD91A9251A1D8FE55A0FDE4A87090D98E91CA0F58517F6FB2892836884B36F9")
+	s.amountCavId = []byte("amount 12000")
+
+	s.baseSignature,_ = hex.DecodeString("4AF05451CD8B86E8740B3AFD384B92076FF3DE68E2570EF9BD2CE4F9E290AB8B")
+	s.resultSignature,_ = hex.DecodeString("560f809f6e989435eca2ed0ac2f563d5d6edbb1e58b1d10321dc98b82a8c53ec")
+
 }
 
 func (s *PassTestSuite) TestAuthenticate(c *check.C) {
@@ -294,4 +317,42 @@ func (s *PassTestSuite) TestPassSeparateSignature(c *check.C) {
 
 	err = VerifyMacaroon(m1, s, [][]byte {[]byte("das " + "DAS_ID")})
 	c.Assert(err, check.IsNil)
+}
+
+
+func (s *PassTestSuite) TestHmacSha256MacaroonSignature (c *check.C) {
+
+	signer,_ := NewHmacSha256Signer(s.cardKey)
+
+	m,_ := New(s.cardId, "", V2)
+
+	slice := MacaroonSlice{macaroons: []*Macaroon{m}}
+	data, err := MarshalBinary(&slice)
+	c.Assert(err, check.IsNil)
+
+	c.Log("macaroon base: " + hex.EncodeToString(data))
+
+	m.SetSignature(s.baseSignature)
+
+	err = HmacSha256SignatureVerify(s.cardKey, m)
+	c.Assert(err, check.IsNil)
+
+	_ = m.AddFirstPartyCaveat(s.payCavId)
+	//_ = m.AddFirstPartyCaveat(s.amountCavId)
+
+	err = m.Sign(signer)
+	c.Assert(err, check.IsNil)
+
+	vId := HmacSha256KeyedHash(m.Signature(), s.random)
+	c.Log("Verification ID: " + hex.EncodeToString(vId))
+
+	_ = m.AddCaveat(s.dasCavId, vId, "das")
+
+	signatures,_ := makeHmacSha256Signature(s.cardKey, m, 2)
+
+	for _, sig := range signatures {
+		c.Log("signature: " + hex.EncodeToString(sig))
+	}
+
+	c.Assert(signatures[len(signatures) - 1], check.DeepEquals, s.resultSignature)
 }

@@ -130,7 +130,11 @@ func (emt* Emitter) EmitMacaroon () (*Macaroon, error) {
 		return nil, fmt.Errorf("cannot sign macaroon: %v", err)
 	}
 
-	return m, nil
+	emt.macaroonBase = m
+
+	mCopy := *m
+
+	return &mCopy, nil
 }
 
 

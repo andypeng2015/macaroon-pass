@@ -4,11 +4,13 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"github.com/decred/dcrd/dcrec/secp256k1"
 	"hash"
 	"io"
-	
+	"log"
+
 	"golang.org/x/crypto/nacl/secretbox"
 )
 
@@ -122,12 +124,15 @@ func DeriveHmacSha256Signer(m *Macaroon) (*HmacSha256Signer, error) {
 	}, nil
 }
 
-func makeHmacSha256Signature(key []byte, m *Macaroon, step int) ([]byte, error) {
+func makeHmacSha256Signature(key []byte, m *Macaroon, step int) ([][]byte, error) {
+
+	signatures := [][]byte(nil)
+
 	if step == 0 {
-		key = HmacSha256KeyedHash(key, m.Id())
+		signatures = append(signatures, HmacSha256KeyedHash(key, m.Id()))
 		step++
 	} else if m.sig != nil {
-		key = m.sig
+		signatures = append(signatures, m.sig)
 	} else {
 		return nil, fmt.Errorf("wrong HMAC SHA256 signer state")
 	}
@@ -140,9 +145,12 @@ func makeHmacSha256Signature(key []byte, m *Macaroon, step int) ([]byte, error) 
 			data = append(data, cav.VerificationId...)
 		}
 		data = append (data, cav.Id...)
-		key = HmacSha256KeyedHash(key, data)
+
+		log.Printf("====== Data to sign: " + hex.EncodeToString(data))
+
+		signatures = append(signatures, HmacSha256KeyedHash(signatures[len(signatures) - 1], data))
 	}
-	return key, nil
+	return signatures, nil
 }
 
 func (s* HmacSha256Signer) SignMacaroon(m *Macaroon) error {
@@ -153,7 +161,7 @@ func (s* HmacSha256Signer) SignMacaroon(m *Macaroon) error {
 		return fmt.Errorf("wrong HMAC SHA256 signer state")
 	}
 
-	sig, err := makeHmacSha256Signature(s.key, m, s.nextStep)
+	signatures, err := makeHmacSha256Signature(s.key, m, s.nextStep)
 	if err != nil {
 		return err
 	}
@@ -162,7 +170,7 @@ func (s* HmacSha256Signer) SignMacaroon(m *Macaroon) error {
 		s.macaroon = m
 	}
 
-	s.macaroon.sig = sig
+	s.macaroon.sig = signatures[len(signatures) - 1]
 	s.nextStep = len(m.caveats) + 1
 
 	return nil
@@ -180,7 +188,7 @@ func HmacSha256SignatureVerify(key []byte, m *Macaroon) error {
 	if err != nil {
 		return fmt.Errorf("signature error: %v", err)
 	}
-	if hmac.Equal(sig, m.sig) {
+	if hmac.Equal(sig[len(sig) - 1], m.sig) {
 		return nil
 	} else {
 		return fmt.Errorf("wrong signature")
